@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.1
+
+- Link the container image to this repository so GitHub Packages accepts it
+
 ## 1.0.0
 
 First public release.
