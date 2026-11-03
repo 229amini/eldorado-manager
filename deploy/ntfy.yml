@@ -1,0 +1,9 @@
+# Private ntfy server for Siren. NTFY_BASE_URL comes from docker-compose.yml.
+listen-http: ":2586"
+behind-proxy: true
+auth-file: /var/lib/ntfy/user.db
+auth-default-access: deny-all
+enable-login: true
+enable-signup: false
+cache-file: /var/lib/ntfy/cache.db
+cache-duration: 24h

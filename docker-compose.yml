@@ -1,0 +1,54 @@
+# docker compose up -d                  Siren alone (Telegram, Discord, Pushover or ntfy.sh)
+# docker compose --profile ntfy up -d   Siren plus your own ntfy server
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+  tmpfs: [/tmp]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  siren:
+    <<: *hardening
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-alpine}
+    image: eldorado-siren:local
+    container_name: siren
+    env_file: .env
+    environment:
+      DASHBOARD_PORT: "8787"
+    volumes:
+      - siren-data:/data
+    ports:
+      - "127.0.0.1:${DASHBOARD_HOST_PORT:-8787}:8787"   # localhost only; see docs/deployment.md
+    pids_limit: 64
+    mem_limit: 128m
+    cpus: 0.25
+
+  ntfy:
+    <<: *hardening
+    profiles: ["ntfy"]
+    image: ${NTFY_IMAGE:-binwiederhier/ntfy:v2.37.0}
+    container_name: siren-ntfy
+    command: serve
+    user: "10001:10001"
+    environment:
+      NTFY_BASE_URL: ${NTFY_PUBLIC_URL:-http://localhost:2586}
+    volumes:
+      - ./deploy/ntfy.yml:/etc/ntfy/server.yml:ro
+      - ntfy-data:/var/lib/ntfy
+    ports:
+      - "127.0.0.1:2586:2586"
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: 0.5
+
+volumes:
+  siren-data:
+  ntfy-data:

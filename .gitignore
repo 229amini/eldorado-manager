@@ -1,0 +1,8 @@
+.env
+*.json.tmp
+state.json
+__pycache__/
+*.pyc
+desktop/.build-venv/
+desktop/build/
+desktop/dist/

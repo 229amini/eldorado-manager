@@ -1,0 +1,10 @@
+# HTTPS for your ntfy server and dashboard. Caddy fetches the certificates by itself.
+# Point both names at your server, then: caddy run --config Caddyfile
+
+ntfy.example.com {
+	reverse_proxy 127.0.0.1:2586
+}
+
+siren.example.com {
+	reverse_proxy 127.0.0.1:8787
+}

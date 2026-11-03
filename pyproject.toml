@@ -1,0 +1,24 @@
+[project]
+name = "eldorado-siren"
+description = "Order alarms for Eldorado.gg sellers: phone, watch, desktop and a live dashboard."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dynamic = ["version"]
+dependencies = []
+
+[project.scripts]
+siren = "siren.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["siren"]
+
+[tool.setuptools.dynamic]
+version = { attr = "siren.__version__" }
+
+[tool.setuptools.package-data]
+siren = ["static/*"]
