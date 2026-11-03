@@ -3,7 +3,9 @@
 ARG PYTHON_IMAGE=python:3.12-alpine
 FROM ${PYTHON_IMAGE}
 
-LABEL org.opencontainers.image.source="https://github.com/229amini/eldorado-siren" \n      org.opencontainers.image.description="Order alarms for Eldorado.gg sellers" \n      org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.source="https://github.com/229amini/eldorado-siren" \
+      org.opencontainers.image.description="Order alarms for Eldorado.gg sellers" \
+      org.opencontainers.image.licenses="MIT"
 
 RUN addgroup -g 10001 siren && adduser -u 10001 -G siren -H -D -s /sbin/nologin siren \
     && mkdir /data && chown 10001:10001 /data
