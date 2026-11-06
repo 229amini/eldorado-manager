@@ -15,6 +15,7 @@ from .config import Settings
 from .net import request
 
 ACK_LABEL = "Got it"
+OPEN_LABEL = "Open"
 
 
 @dataclass(frozen=True)
@@ -26,6 +27,8 @@ class Alert:
     url: str | None = None
     ack_id: str | None = None
     repeat: bool = False      # True when this alert repeats an earlier one
+    deadline: float | None = None   # Unix seconds, for the Windows countdown
+    window: float | None = None     # delivery window in seconds
 
 
 class Channel:
@@ -55,12 +58,18 @@ class Ntfy(Channel):
     def send(self, alert):
         message = {"topic": self.topic, "title": alert.title, "message": alert.body,
                    "priority": alert.level, "tags": self.TAGS.get(alert.kind, [])}
-        if alert.url:
-            message["click"] = alert.url
+        actions = []
         if alert.ack_id:
-            message["actions"] = [{"action": "http", "label": ACK_LABEL, "method": "POST", "clear": True,
-                                   "url": f"{self.public_url}/{self.ack_topic}", "body": alert.ack_id,
-                                   "headers": self.auth}]
+            headers = dict(self.auth)
+            if alert.deadline is not None and alert.window:   # the Windows app reads its countdown from here
+                headers.update({"X-Siren-Deadline": str(alert.deadline), "X-Siren-Window": str(alert.window)})
+            actions.append({"action": "http", "label": ACK_LABEL, "method": "POST", "clear": True,
+                            "url": f"{self.public_url}/{self.ack_topic}", "body": alert.ack_id,
+                            "headers": headers})
+        if alert.url:   # a button, so tapping the alert to silence it doesn't open a browser
+            actions.append({"action": "view", "label": OPEN_LABEL, "url": alert.url})
+        if actions:
+            message["actions"] = actions
         self.transport("POST", self.url, headers=self.auth, json_body=message)
 
     def poll_acks(self):

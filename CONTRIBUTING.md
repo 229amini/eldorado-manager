@@ -9,12 +9,21 @@ python -m unittest discover -s tests -t .   # tests
 python -m siren demo --scene hurry          # dashboard on a fake account
 ```
 
+The Windows app needs the .NET SDK on Windows:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File desktop\build.ps1
+```
+
+To work on its dashboard page without an Eldorado key, open `desktop/Siren/Web/index.html#dark` in a browser. It loads made-up data from `sample.js`.
+
 ## Rules for changes
 
 - Keep the server on the standard library. Zero dependencies is a feature: sellers run this on small machines, and it has no supply chain to attack.
 - Add a test with each behavior change. `tests/test_engine.py` has a fake clock and a fake API, so you can test hours of alarm behavior in a millisecond.
 - A failing channel must never stop other channels or the poll loop.
-- Siren reads by default. Anything that changes a seller's account needs a setting that starts off.
+- The server reads by default. Anything it changes on a seller's account needs a setting that starts off.
+- The Windows app writes only when the seller acts. Nothing writes on a timer, and order actions ask twice.
 
 ## Add a channel
 

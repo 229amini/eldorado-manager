@@ -24,7 +24,7 @@ Eldorado's Seller API has no webhooks, so Siren polls it. Answers travel back th
 | `siren/static/index.html` | The whole dashboard: one page, no build step |
 | `siren/demo.py` | The fake account behind `siren demo` |
 | `siren/config.py` | Environment variables |
-| `desktop/siren_desktop.py` | The Windows app and installer in one file |
+| `desktop/Siren/` | The Windows app and installer in one exe. See [below](#windows-app) |
 
 ## One poll
 
@@ -72,6 +72,34 @@ Things the Swagger page doesn't tell you:
 - `sold-order-data` returns CSV with a byte order mark, not JSON.
 - Date fields can carry 7 fractional digits, more than Python's parser accepted before 3.11.
 - Tokens last 15 minutes. `EldoradoClient` renews them 60 seconds early and retries once on a `401`.
+- `GET currency-management/me/offers` takes its filter as a JSON body, and `augmentedGameFilter` needs a `gameId` and a `category`. There is no call for all your currency offers, so the dashboard asks once for each game your item offers are in. A seller with currency offers only won't see them yet.
+- The public currency listing ignores the price sort, and it mixes offers priced per 1K and per 1M. Siren walks all of it and compares only offers with your unit.
+
+- `sold-order-data` lists `Completed` orders only, about 5 days after the sale, and dates them by completion. The Windows app counts sales from `orders/me/seller/orders` by the day the buyer paid, and takes only cleared net income and fees from the CSV.
+- Eldorado's `orderCounts` field comes back empty on your offers and on public ones, so no call tells you how much another seller sold.
+- Prices take 2 decimals, or up to 5 below 0.01. Anything else gets a `400`.
+- The bulk price call puts one price on every offer it matches. The Windows app changes prices one offer at a time for that reason.
+
+## Windows app
+
+C# on .NET Framework 4.8, which ships with Windows, so the exe needs no runtime. It runs as two processes:
+
+| Process | Started with | Job |
+|---|---|---|
+| Alarm | `--background`, at sign-in | Listens to ntfy, shows the island and the red screen, runs the market watch |
+| Dashboard | `--dashboard` | Reads your shop and sends your edits |
+
+| File | Job |
+|---|---|
+| `Program.cs`, `Installer.cs` | Flags, and the exe installing itself |
+| `AlarmWindow.xaml.cs`, `TakeoverWindow.xaml.cs`, `Listener.cs` | The alarm |
+| `DashboardWindow.xaml.cs` | The dashboard's loop and every write |
+| `Market.cs` | The Eldorado API client |
+| `Insights.cs` | The Insights tab |
+| `MarketWatch.cs` | Counts falls in other sellers' stock |
+| `Web/` | The dashboard page, shown in WebView2. No build step |
+
+The installer copies one file, so the page, the sounds and the WebView2 libraries ride inside the exe. `WebHost.cs` unpacks what has to exist on disk.
 
 ## Design of the dashboard
 

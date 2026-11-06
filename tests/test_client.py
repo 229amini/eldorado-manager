@@ -83,6 +83,20 @@ class Channels(unittest.TestCase):
         action = body["actions"][0]
         self.assertEqual((body["priority"], action["url"], action["body"]), (5, "https://public/topic-ack", "o1"))
 
+    def test_ntfy_opens_the_order_from_a_button_only(self):
+        wire = Wire()
+        Ntfy("http://ntfy", "https://public", "topic", "tk", transport=wire).send(ALERT)
+        body = wire.calls[0][2]["json_body"]
+        self.assertNotIn("click", body)
+        self.assertEqual(body["actions"][1]["url"], "https://e/order/1")
+
+    def test_ntfy_carries_the_countdown_for_the_windows_app(self):
+        wire = Wire()
+        alert = Alert("order", 5, "New order", "Gold", None, "o1", deadline=1000.0, window=1200.0)
+        Ntfy("http://ntfy", "https://public", "topic", "", transport=wire).send(alert)
+        headers = wire.calls[0][2]["json_body"]["actions"][0]["headers"]
+        self.assertEqual((headers["X-Siren-Deadline"], headers["X-Siren-Window"]), ("1000.0", "1200.0"))
+
     def test_ntfy_reads_acks(self):
         line = json.dumps({"id": "m1", "event": "message", "message": "o1"})
         channel = Ntfy("http://ntfy", "", "topic", "", transport=Wire(line))

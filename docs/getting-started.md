@@ -2,6 +2,8 @@
 
 This guide takes you from nothing to a phone that rings on a new order. Plan on 15 minutes.
 
+If you only want the shop dashboard on Windows, you can skip all of this. Go to [Windows app](desktop.md).
+
 ## What you need
 
 - A verified Eldorado seller account.
@@ -74,7 +76,9 @@ Android keeps killing background apps unless you tell it not to. On your phone:
 1. Open the app's system settings and allow notifications at the highest level.
 2. Turn on **Autostart**, if your phone has that option. Xiaomi, Oppo and Vivo phones do.
 3. Set the battery setting to **Unrestricted** or **No restrictions**.
-4. In ntfy settings, turn on the option that keeps alerting for highest priority messages. Your phone then rings until you dismiss it.
+4. In ntfy settings, turn off **Keep alerting for highest priority**. Siren repeats the alert until you answer, so you don't need it, and ntfy's loop keeps ringing after you tap **Got it**.
+
+Tap **Got it** to stop the alarm on every device. Tapping the notification itself silences that one ring, and Siren rings again on its next repeat. **Open** takes you to the order on Eldorado.
 
 ## 7. Get it on your watch
 
@@ -89,7 +93,7 @@ Your watch shows what your phone shows, so you only need to allow one app:
 
 ## 8. Add the PC alarm
 
-Download `SirenSetup.exe` from the [latest release](https://github.com/229amini/eldorado-siren/releases/latest) and run it. See [Windows alarm](desktop.md).
+Download `SirenSetup.exe` from the [latest release](https://github.com/229amini/eldorado-siren/releases/latest) and run it. Under **Alarm server**, enter the same ntfy address and topic you put in `.env`. Add your Eldorado key under **Eldorado key** and you get the shop dashboard too. See [Windows app](desktop.md).
 
 ## You're done
 

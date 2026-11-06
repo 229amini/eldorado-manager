@@ -155,7 +155,7 @@ class Engine:
             title = f"{headline}: {format_remaining(remaining)} left"
         else:
             title = f"{headline}: {format_remaining(remaining)} over"
-        return Alert("order", 5, title, order.summary, order.url, order.id, repeat)
+        return Alert("order", 5, title, order.summary, order.url, order.id, repeat, order.deadline, order.window)
 
     def _watch_disputes(self):
         seen = set(self.state["disputes"])
