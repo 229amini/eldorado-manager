@@ -1,5 +1,5 @@
 [project]
-name = "eldorado-siren"
+name = "eldorado-manager"
 description = "Order alarms for Eldorado.gg sellers: phone, watch, desktop and a live dashboard."
 readme = "README.md"
 license = { text = "MIT" }

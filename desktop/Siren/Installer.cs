@@ -28,7 +28,7 @@ namespace Siren
             using (var key = Registry.CurrentUser.CreateSubKey(UninstallKey))
             {
                 key.SetValue("DisplayName", "Siren");
-                key.SetValue("Publisher", "eldorado-siren");
+                key.SetValue("Publisher", "eldorado-manager");
                 key.SetValue("DisplayIcon", InstalledExe);
                 key.SetValue("DisplayVersion", typeof(Installer).Assembly.GetName().Version.ToString(3));
                 key.SetValue("InstallLocation", Config.Home);

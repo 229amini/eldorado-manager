@@ -18,7 +18,7 @@ services:
       context: .
       args:
         PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-alpine}
-    image: eldorado-siren:local
+    image: eldorado-manager:local
     container_name: siren
     env_file: .env
     environment:

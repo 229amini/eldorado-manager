@@ -31,7 +31,7 @@ To work on its dashboard page without an Eldorado key, open `desktop/Siren/Web/i
 
 ## Report an API change
 
-If Eldorado changes a field and Siren breaks, open an issue with the error from `docker compose logs siren`. Remove buyer names and order ids first.
+If Eldorado changes a field and Eldorado Manager breaks, open an issue with the error from `docker compose logs siren`. Remove buyer names and order ids first.
 
 ## Security
 

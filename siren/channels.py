@@ -29,6 +29,7 @@ class Alert:
     repeat: bool = False      # True when this alert repeats an earlier one
     deadline: float | None = None   # Unix seconds, for the Windows countdown
     window: float | None = None     # delivery window in seconds
+    headline: str | None = None     # the title without the time left, which goes stale
 
 
 class Channel:
@@ -40,6 +41,9 @@ class Channel:
 
     def poll_acks(self) -> set[str]:
         return set()
+
+    def closed(self, order_id: str) -> None:
+        """The order left the open list, whoever delivered it."""
 
 
 class Ntfy(Channel):
@@ -164,6 +168,30 @@ class Pushover(Channel):
                        data=urllib.parse.urlencode(fields))
 
 
+class Webhook(Channel):
+    """POST each alert as JSON to your own alert server. It handles repeats, so Siren sends only changes."""
+
+    name = "webhook"
+    wants_repeats = False
+
+    def __init__(self, url, token, transport=request):
+        self.url = url
+        self.headers = {"Authorization": f"Bearer {token}"} if token else {}
+        self.transport = transport
+
+    def send(self, alert):
+        if alert.level < 3 or alert.headline == "Deliver soon":
+            return      # the startup note, and a stage the countdown already shows
+        message = {"title": alert.headline or alert.title, "body": alert.body, "link": alert.url, "key": alert.ack_id,
+                   "deadline": alert.deadline, "window": alert.window, "level": alert.level,
+                   "style": "call" if alert.level >= 4 else "notify",
+                   "ring": alert.kind == "order" and alert.headline != "New order"}
+        self.transport("POST", self.url, headers=self.headers, json_body=message)
+
+    def closed(self, order_id):
+        self.transport("POST", self.url, headers=self.headers, json_body={"key": order_id, "resolved": True})
+
+
 def build_channels(settings: Settings) -> list[Channel]:
     channels: list[Channel] = []
     if settings.ntfy_url:
@@ -174,4 +202,6 @@ def build_channels(settings: Settings) -> list[Channel]:
         channels.append(Discord(settings.discord_webhook_url))
     if settings.pushover_app_token and settings.pushover_user_key:
         channels.append(Pushover(settings.pushover_app_token, settings.pushover_user_key))
+    if settings.webhook_url:
+        channels.append(Webhook(settings.webhook_url, settings.webhook_token))
     return channels

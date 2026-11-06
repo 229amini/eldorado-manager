@@ -3,7 +3,7 @@
 ARG PYTHON_IMAGE=python:3.12-alpine
 FROM ${PYTHON_IMAGE}
 
-LABEL org.opencontainers.image.source="https://github.com/229amini/eldorado-siren" \
+LABEL org.opencontainers.image.source="https://github.com/229amini/eldorado-manager" \
       org.opencontainers.image.description="Order alarms for Eldorado.gg sellers" \
       org.opencontainers.image.licenses="MIT"
 

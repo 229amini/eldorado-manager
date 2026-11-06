@@ -35,6 +35,8 @@ class Settings:
     discord_webhook_url: str = ""
     pushover_app_token: str = ""
     pushover_user_key: str = ""
+    webhook_url: str = ""
+    webhook_token: str = ""
 
     dashboard_host: str = "0.0.0.0"
     dashboard_port: int = 8787
@@ -70,6 +72,8 @@ class Settings:
             discord_webhook_url=get("DISCORD_WEBHOOK_URL"),
             pushover_app_token=get("PUSHOVER_APP_TOKEN"),
             pushover_user_key=get("PUSHOVER_USER_KEY"),
+            webhook_url=get("WEBHOOK_URL"),
+            webhook_token=get("WEBHOOK_TOKEN"),
             dashboard_host=get("DASHBOARD_HOST", "0.0.0.0"),
             dashboard_port=int(get("DASHBOARD_PORT", "8787")),
             dashboard_token=get("DASHBOARD_TOKEN"),

@@ -10,7 +10,7 @@
                             Dashboard  <-----  your browser
 ```
 
-Eldorado's Seller API has no webhooks, so Siren polls it. Answers travel back the other way: the ntfy and Telegram channels hand the engine the order ids you acknowledged.
+Eldorado's Seller API has no webhooks, so Eldorado Manager polls it. Answers travel back the other way: the ntfy and Telegram channels hand the engine the order ids you acknowledged.
 
 ## Code map
 
@@ -52,8 +52,8 @@ Each open order has one alarm record:
 
 | Field | Meaning |
 |---|---|
-| `first` | When Siren first saw the order |
-| `last` | When Siren last alerted |
+| `first` | When Eldorado Manager first saw the order |
+| `last` | When Eldorado Manager last alerted |
 | `stage` | Highest stage reached |
 | `stage_since` | When that stage started, for the repeat budget |
 | `acked_stage` | Stage you answered at, or `None` |
@@ -73,7 +73,7 @@ Things the Swagger page doesn't tell you:
 - Date fields can carry 7 fractional digits, more than Python's parser accepted before 3.11.
 - Tokens last 15 minutes. `EldoradoClient` renews them 60 seconds early and retries once on a `401`.
 - `GET currency-management/me/offers` takes its filter as a JSON body, and `augmentedGameFilter` needs a `gameId` and a `category`. There is no call for all your currency offers, so the dashboard asks once for each game your item offers are in. A seller with currency offers only won't see them yet.
-- The public currency listing ignores the price sort, and it mixes offers priced per 1K and per 1M. Siren walks all of it and compares only offers with your unit.
+- The public currency listing ignores the price sort, and it mixes offers priced per 1K and per 1M. Eldorado Manager walks all of it and compares only offers with your unit.
 
 - `sold-order-data` lists `Completed` orders only, about 5 days after the sale, and dates them by completion. The Windows app counts sales from `orders/me/seller/orders` by the day the buyer paid, and takes only cleared net income and fees from the CSV.
 - Eldorado's `orderCounts` field comes back empty on your offers and on public ones, so no call tells you how much another seller sold.

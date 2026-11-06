@@ -8,7 +8,7 @@ import urllib.request
 
 from . import __version__
 
-USER_AGENT = f"eldorado-siren/{__version__} (+https://github.com/229amini/eldorado-siren)"
+USER_AGENT = f"eldorado-manager/{__version__} (+https://github.com/229amini/eldorado-manager)"
 
 
 class HttpError(Exception):

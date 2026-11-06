@@ -141,6 +141,7 @@ class Engine:
         open_ids = {order.id for order in orders}
         for order_id in [known for known in alarms if known not in open_ids]:
             del alarms[order_id]
+            self._closed(order_id)
 
     @staticmethod
     def _headline(stage: Stage) -> str:
@@ -155,7 +156,8 @@ class Engine:
             title = f"{headline}: {format_remaining(remaining)} left"
         else:
             title = f"{headline}: {format_remaining(remaining)} over"
-        return Alert("order", 5, title, order.summary, order.url, order.id, repeat, order.deadline, order.window)
+        return Alert("order", 5, title, order.summary, order.url, order.id, repeat, order.deadline, order.window,
+                     headline)
 
     def _watch_disputes(self):
         seen = set(self.state["disputes"])
@@ -205,6 +207,13 @@ class Engine:
                                  "Buyers can't place new orders until you go online again."))
 
     # ---- delivery ----
+
+    def _closed(self, order_id):
+        for channel in self.channels:
+            try:
+                channel.closed(order_id)
+            except Exception as error:
+                log.warning("%s close failed: %s", channel.name, error)
 
     def _dispatch(self, alert: Alert):
         self.recent = [{"at": self.clock(), "title": alert.title, "body": alert.body, "kind": alert.kind}] \

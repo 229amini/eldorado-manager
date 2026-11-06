@@ -1,6 +1,6 @@
 # Configuration
 
-Siren reads environment variables. With Docker, put them in `.env`.
+Eldorado Manager reads environment variables. With Docker, put them in `.env`.
 
 ## Eldorado
 
@@ -27,10 +27,10 @@ To hear critical repeats at the full 15 second rate, set `POLL_SECONDS=15`.
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `DEADMAN_ENABLED` | `false` | Set to `true` to allow Siren to take you offline |
+| `DEADMAN_ENABLED` | `false` | Set to `true` to allow Eldorado Manager to take you offline |
 | `DEADMAN_MINUTES` | `10` | How long an alarm can go unanswered first |
 
-When it fires, Siren calls `switchOffline` once and alerts you. Siren never goes online by itself: click **Go online** on the dashboard, or switch on Eldorado.
+When it fires, Eldorado Manager calls `switchOffline` once and alerts you. Eldorado Manager never goes online by itself: click **Go online** on the dashboard, or switch on Eldorado.
 
 Going offline doesn't cancel or deliver the order that triggered it.
 
@@ -51,6 +51,7 @@ Going offline doesn't cancel or deliver the order that triggered it.
 | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Telegram |
 | `DISCORD_WEBHOOK_URL` | Discord |
 | `PUSHOVER_APP_TOKEN`, `PUSHOVER_USER_KEY` | Pushover |
+| `WEBHOOK_URL`, `WEBHOOK_TOKEN` | Your own alert server |
 
 [Channels](channels.md) shows where to get each value.
 
@@ -60,4 +61,4 @@ Going offline doesn't cancel or deliver the order that triggered it.
 |---|---|---|
 | `PYTHON_IMAGE` | `python:3.12-alpine` | Base image |
 | `NTFY_IMAGE` | `binwiederhier/ntfy:v2.37.0` | ntfy image |
-| `STATE_FILE` | `/data/state.json` | Where Siren remembers alarms between restarts |
+| `STATE_FILE` | `/data/state.json` | Where Eldorado Manager remembers alarms between restarts |

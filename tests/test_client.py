@@ -1,7 +1,7 @@
 import json
 import unittest
 
-from siren.channels import Alert, Discord, Ntfy, Pushover, Telegram, build_channels
+from siren.channels import Alert, Discord, Ntfy, Pushover, Telegram, Webhook, build_channels
 from siren.config import Settings
 from siren.eldorado import EldoradoClient, Notice, Order
 from siren.net import HttpError
@@ -133,6 +133,36 @@ class Env(unittest.TestCase):
         settings = Settings.from_env({"NTFY_URL": "https://n/", "POLL_SECONDS": "15", "DEADMAN_ENABLED": "yes"})
         self.assertEqual((settings.ntfy_public_url, settings.poll_seconds, settings.deadman_enabled),
                          ("https://n", 15, True))
+
+
+
+class WebhookChannel(unittest.TestCase):
+    def sent(self, alert):
+        calls = []
+        channel = Webhook("http://hub", "key", transport=lambda *a, **k: calls.append(k.get("json_body")))
+        channel.send(alert)
+        return calls
+
+    def test_a_new_order_rings_without_the_time_left(self):
+        alert = Alert("order", 5, "New order: 19 min left", "item", "http://o", "o1", False, 2000.0, 1200, "New order")
+        message = self.sent(alert)[0]
+        self.assertEqual((message["title"], message["key"], message["ring"]), ("New order", "o1", False))
+
+    def test_the_last_minutes_ring_again(self):
+        alert = Alert("order", 5, "Deadline close: 3 min left", "item", None, "o1", False, 2000.0, 1200, "Deadline close")
+        self.assertTrue(self.sent(alert)[0]["ring"])
+
+    def test_skips_the_startup_note_and_the_hurry_stage(self):
+        self.assertEqual(self.sent(Alert("system", 2, "Siren is on watch", "")), [])
+        self.assertEqual(self.sent(Alert("order", 5, "x", "", None, "o1", False, 1.0, 1, "Deliver soon")), [])
+
+    def test_a_notice_is_a_plain_notification(self):
+        self.assertEqual(self.sent(Alert("notice", 3, "Review", "text"))[0]["style"], "notify")
+
+    def test_closing_an_order_resolves_it(self):
+        calls = []
+        Webhook("http://hub", "key", transport=lambda *a, **k: calls.append(k.get("json_body"))).closed("o1")
+        self.assertEqual(calls, [{"key": "o1", "resolved": True}])
 
 
 if __name__ == "__main__":
