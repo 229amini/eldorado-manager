@@ -18,7 +18,8 @@ function Wait-Until([scriptblock] $done, [string] $what) {
     throw "timed out: $what"
 }
 
-Start-Process (Join-Path $here 'dist\SirenSetup.exe') -Wait
+# Not -Wait: that also waits for the app the installer starts, which keeps running.
+(Start-Process (Join-Path $here 'dist\SirenSetup.exe') -PassThru).WaitForExit()
 
 Wait-Until { Test-Path $exe } 'exe installed'
 Wait-Until { (Get-ItemProperty $run).Siren -like '*--background' } 'starts at sign-in'
@@ -30,7 +31,7 @@ Start-Sleep -Seconds 3
 if (-not (Get-Process Siren -ErrorAction SilentlyContinue)) { throw 'the app quit after starting' }
 Write-Output 'ok: still running after 3 seconds'
 
-Start-Process $exe -ArgumentList '--uninstall' -Wait
+(Start-Process $exe -ArgumentList '--uninstall' -PassThru).WaitForExit()
 Wait-Until { -not (Test-Path $exe) } 'exe removed'
 Wait-Until { -not (Test-Path $uninstall) } 'removed from Installed apps'
 Wait-Until { -not (Test-Path (Join-Path $links 'Siren dashboard.lnk')) } 'shortcuts removed'
