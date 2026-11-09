@@ -37,6 +37,7 @@ namespace Siren
             SellerIdBox.Text = this.existing.SellerId;
             SellerSecretBox.Password = this.existing.SellerSecret;
             VolumeBox.Value = this.existing.Volume;
+            (this.existing.Ring ? RingOn : RingOff).IsChecked = true;
             var firstRun = this.existing.Topic.Length == 0 || existing == null;
             if (firstRun) SaveButton.Content = "Save and start";
             Open(keysOnly ? "key" : firstRun ? "alarms" : "general");
@@ -98,6 +99,7 @@ namespace Siren
                 Token = TokenBox.Password.Trim(),
                 Sound = existing.Sound,
                 Volume = (int)VolumeBox.Value,
+                Ring = RingOff.IsChecked != true,
                 Theme = Skin.Current.Name,
                 SellerId = SellerIdBox.Text.Trim(),
                 SellerSecret = SellerSecretBox.Password.Trim(),

@@ -1,7 +1,7 @@
 <Window x:Class="Siren.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Siren settings" Icon="siren.ico" Width="620" SizeToContent="Height"
+        Title="Eldorado Manager settings" Icon="siren.ico" Width="620" SizeToContent="Height"
         WindowStyle="None" AllowsTransparency="True" Background="{x:Null}" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen" Topmost="True"
         FontFamily="pack://application:,,,/Fonts/#Hind" FontSize="15"
@@ -188,7 +188,7 @@
             <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270" Opacity="0.55" Color="Black" />
         </Border.Effect>
         <StackPanel>
-            <TextBlock Text="Siren" Foreground="{DynamicResource SkinInk}" FontSize="36"
+            <TextBlock Text="Eldorado Manager" Foreground="{DynamicResource SkinInk}" FontSize="36"
                        FontFamily="pack://application:,,,/Fonts/#Big Shoulders" />
 
             <StackPanel x:Name="Tabs" Orientation="Horizontal" Margin="0,4,0,16">
@@ -215,7 +215,7 @@
                 </StackPanel>
 
                 <StackPanel x:Name="AlarmPart">
-                    <TextBlock Style="{StaticResource Hint}" Text="Use the same server and topic as your Siren server, so orders reach this PC. For the dashboard alone, clear the topic and fill in Eldorado key." />
+                    <TextBlock Style="{StaticResource Hint}" Text="Use the same server and topic as your Eldorado Manager server, so orders reach this PC. For the dashboard alone, clear the topic and fill in Eldorado key." />
                     <DockPanel>
                         <TextBlock Style="{StaticResource RowLabel}" Text="Server address" />
                         <TextBox x:Name="UrlBox" />
@@ -228,6 +228,11 @@
                         <TextBlock Style="{StaticResource RowLabel}" Text="Access token" />
                         <PasswordBox x:Name="TokenBox" />
                     </DockPanel>
+                    <TextBlock Text="New orders on this PC" Foreground="{DynamicResource SkinLabel}" Margin="0,2,0,6" />
+                    <UniformGrid Rows="1" Margin="0,0,-8,0">
+                        <RadioButton x:Name="RingOn" Style="{StaticResource Choice}" GroupName="ring" Content="Ring" />
+                        <RadioButton x:Name="RingOff" Style="{StaticResource Choice}" GroupName="ring" Content="Stay silent" />
+                    </UniformGrid>
                 </StackPanel>
 
                 <StackPanel x:Name="KeyPart">

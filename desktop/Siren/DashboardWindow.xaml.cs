@@ -41,6 +41,7 @@ namespace Siren
         private List<OfferRow> rows = new List<OfferRow>();
         private WebView2 web;
         private bool ready;
+        private bool hasAlarms, ring;
         private string sort = "attention";
         private bool descending;
         private DateTime? pricesChecked, siteChecked;
@@ -66,6 +67,8 @@ namespace Siren
             InitializeComponent();
             this.config = config;
             this.market = market;
+            hasAlarms = config.HasAlarms;
+            ring = config.Ring;
             Skin.Use(config.Theme);
             SourceInitialized += (_, __) => Restyle();
             clock.Tick += (_, __) =>
@@ -150,6 +153,8 @@ namespace Siren
             web.CoreWebView2.PostWebMessageAsJson(json.Serialize(new Dictionary<string, object>
             {
                 ["theme"] = Skin.Current.Name,
+                ["alarms"] = hasAlarms,
+                ["ring"] = ring,
                 ["sort"] = sort,
                 ["descending"] = descending,
                 ["offline"] = rows.Any(r => r.State == "Offline"),
@@ -315,6 +320,7 @@ namespace Siren
                     Later();
                     return;
                 case "theme": SetTheme(Text("value")); return;
+                case "ring": SetRing(!ring); return;
                 case "settings": Process.Start(Installer.CurrentExe, "--settings"); return;
                 case "ack": Acknowledge(Text("id")); return;
                 case "openOrder": OpenLink(order != null && order.TryGetValue("link", out var link) ? link as string : ""); return;
@@ -344,6 +350,7 @@ namespace Siren
                 case "typedStock": QuantityTyped(row, Text("text")); break;
                 case "enterStock": QuantityEntered(row, Text("text")); break;
                 case "toggle": Toggle(row); break;
+                case "reopen": Reopen(row); break;
             }
         }
 
@@ -355,9 +362,32 @@ namespace Siren
             var saved = Config.Load();
             if (saved == null) return;   // caught mid-write: the next tick reads it again
             themeRead = stamp;
+            if (saved.HasAlarms != hasAlarms || saved.Ring != ring)
+            {
+                hasAlarms = saved.HasAlarms;
+                ring = saved.Ring;
+                Later();
+            }
             if (saved.Theme == Skin.Current.Name) return;
             Skin.Use(saved.Theme);
             Restyle();
+            Later();
+        }
+
+        /// <summary>The alarm reads this setting when it starts, so it restarts. That also clears an alarm on screen.</summary>
+        private void SetRing(bool on)
+        {
+            var saved = Config.Load();
+            if (saved == null) return;
+            saved.Ring = on;
+            saved.Save();
+            ring = on;
+            themeRead = Config.SavedAt;
+            Task.Run(() =>
+            {
+                Installer.StopOthers(keepDashboard: true);
+                Installer.StartAlarm();
+            });
             Later();
         }
 
@@ -707,7 +737,7 @@ namespace Siren
         private void CommitPrice(OfferRow row)
         {
             var price = row.PendingPrice;
-            if (price == null) return;
+            if (price == null || Held(row)) return;
             if (Math.Abs(price.Value - row.LivePrice) < 0.00001)
             {
                 ResetPrice(row);
@@ -834,7 +864,7 @@ namespace Siren
         private void SendQuantity(OfferRow row)
         {
             var quantity = row.PendingQuantity;
-            if (quantity == null) return;
+            if (quantity == null || Held(row)) return;
             Run(row, () => market.SetQuantity(row.Offer, quantity.Value), () =>
             {
                 row.Offer.Quantity = quantity.Value;
@@ -868,12 +898,81 @@ namespace Siren
             }, () => { });
         }
 
+        // ---------- closed offers ----------
+
+        /// <summary>A closed offer keeps your edits on the row until Reopen sends them together.</summary>
+        private static bool Held(OfferRow row)
+        {
+            if (row.State != "Closed") return false;
+            row.Note = "Kept on the row. Reopen offer sends the price and stock together.";
+            return true;
+        }
+
+        /// <summary>
+        /// Eldorado closes an offer when its stock runs out. The API has no reopen call, but new stock lists
+        /// a sold-out offer again by itself (checked live 2026-11-09). Resume covers an offer closed for
+        /// another reason, and refuses with "currently Active" when the stock already did the job.
+        /// </summary>
+        private void Reopen(OfferRow row)
+        {
+            if (!int.TryParse(row.QuantityDraft, out var quantity) || quantity <= 0)
+            {
+                row.Note = "Set the stock above 0 first.";
+                return;
+            }
+            double? price = null;
+            if (TryPrice(row.PriceDraft, out var typed) && Math.Abs(typed - row.LivePrice) >= 0.00001)
+            {
+                if (typed <= 0 || !Fits(typed))
+                {
+                    row.Note = typed <= 0 ? "Enter a price above zero, like 0.25." : TooFine;
+                    return;
+                }
+                price = typed;
+            }
+            StopWaiting(row, "price");
+            StopWaiting(row, "stock");
+            string refused = null;
+            Run(row, () =>
+            {
+                if (price != null) market.SetPrice(row.Offer, price.Value);
+                market.SetQuantity(row.Offer, quantity);
+                try
+                {
+                    market.Resume(row.Offer);
+                }
+                catch (MarketError error) when (error.Message.IndexOf("currently Active", StringComparison.OrdinalIgnoreCase) < 0)
+                {
+                    Config.Log("reopen: resume answered " + error.Message);
+                    refused = error.Message;
+                }
+                catch (MarketError)
+                {
+                }
+            }, () =>
+            {
+                if (price != null)
+                {
+                    row.Offer.Price = price.Value;
+                    row.LivePrice = price.Value;
+                }
+                row.Offer.Quantity = quantity;
+                row.PendingPrice = null;
+                row.PendingQuantity = null;
+                row.Note = refused == null
+                    ? "Reopened. The next check confirms it's listed."
+                    : $"Price and stock saved. Resume answered: {refused} The next check shows whether it's listed.";
+                wake.Set();
+            }, () => { });
+        }
+
         // ---------- sending ----------
 
         /// <summary>Holds your edits back until they stop, so they reach Eldorado as one change.</summary>
         private void Soon(OfferRow row, string field, Action send)
         {
             StopWaiting(row, field);
+            if (Held(row)) return;
             var key = row.Offer.Id + field;
             var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(SendDelaySeconds) };
             timer.Tick += (_, __) =>

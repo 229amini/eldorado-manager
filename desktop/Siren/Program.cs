@@ -8,7 +8,7 @@ using System.Windows;
 namespace Siren
 {
     /// <summary>
-    /// SirenSetup.exe is both installer and app. Run from anywhere, it installs itself. Run from the
+    /// EldoradoManagerSetup.exe is both installer and app. Run from anywhere, it installs itself. Run from the
     /// install folder, it opens the dashboard and starts the alarm behind it. Flags: --background (the
     /// alarm alone, used at sign-in), --dashboard, --settings, --uninstall,
     /// --demo [calm|critical|late|flow], --snapshot DIR.
@@ -24,7 +24,7 @@ namespace Siren
         public static void Main(string[] args)
         {
             // The taskbar keeps an app's icon by identity, so without its own it shows what Windows cached for the exe path.
-            SetCurrentProcessExplicitAppUserModelID("EldoradoSiren.Siren");
+            SetCurrentProcessExplicitAppUserModelID("EldoradoManager.App");
             WebHost.Prepare();
             ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls12;
             var demo = Array.IndexOf(args, "--demo");
@@ -91,7 +91,7 @@ namespace Siren
 
         private static void Alarm(bool welcome)
         {
-            instance = new Mutex(false, @"Local\Siren", out var createdNew);
+            instance = new Mutex(false, @"Local\EldoradoManager", out var createdNew);
             if (!createdNew) return;
             Run(window =>
             {
@@ -107,17 +107,20 @@ namespace Siren
                     config = settings.Result;
                     welcome = true;
                 }
-                if (config.HasAlarms) window.Listen(config);
+                // Silent still runs this process, because the market watch lives in it.
+                var ring = config.HasAlarms && config.Ring;
+                if (ring) window.Listen(config);
+                else Config.ShareOrder(null, "");   // an order left from before would hang on in the dashboard
                 new MarketWatch().Start();
                 if (!welcome) return;
-                if (config.HasAlarms) window.Welcome();
+                if (ring) window.Welcome();
                 if (config.HasSellerKey) Installer.StartDashboard();
             });
         }
 
         private static void Dashboard()
         {
-            instance = new Mutex(false, @"Local\SirenDashboard", out var createdNew);
+            instance = new Mutex(false, @"Local\EldoradoManagerDashboard", out var createdNew);
             if (!createdNew) return;
             var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
             app.Startup += (_, __) =>

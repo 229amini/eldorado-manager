@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.0
+
+The project is now called Eldorado Manager, and the Windows app follows: `EldoradoManagerSetup.exe` installs `EldoradoManager.exe` in `%LOCALAPPDATA%\EldoradoManager`. Run it over 1.2.0 and it carries your settings, history and market data across, then removes the old Siren install.
+
+- Windows: an **Alarm on / off** switch in the dashboard and in Settings. Turn it off when another app already rings for your orders. The market estimate keeps running.
+- Windows: closed offers take a new price and stock on the row, and **Reopen offer** sends both to list the offer again
+- Windows: the market table shows **Sold at**, the middle price of the sales it saw, and **Most sales**, the offer that sold most with a link to it. These replace **Typical**, the middle of listed prices, which a few overpriced offers could pull far above what buyers pay.
+- Server: a webhook channel posts each alert as JSON to a URL you choose
+
+Price edits, stock edits and **Reopen offer** have run on a live account. Pause, deliver, extend and bulk changes still haven't.
+
 ## 1.2.0
 
 The Windows app is new. It replaces the Python alarm and adds a shop dashboard.

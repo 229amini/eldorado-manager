@@ -11,9 +11,9 @@ namespace Siren
     public sealed class Config
     {
         public static readonly string Home =
-            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Siren");
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "EldoradoManager");
         private static readonly string ConfigPath = System.IO.Path.Combine(Home, "config.json");
-        private static readonly string LogPath = System.IO.Path.Combine(Home, "siren.log");
+        private static readonly string LogPath = System.IO.Path.Combine(Home, "manager.log");
         private static readonly string OrderPath = System.IO.Path.Combine(Home, "open-order.json");
 
         public string Url = "https://ntfy.sh";
@@ -21,6 +21,7 @@ namespace Siren
         public string Token = "";
         public string Sound = "";   // optional path to your own .wav
         public int Volume = 15;     // percent of the sound file's own level
+        public bool Ring = true;    // off while another app already rings for the same orders
         public string Theme = "dark";   // a Skin name
         public string SellerId = "";
         public string SellerSecret = "";   // stored encrypted for this Windows user
@@ -45,6 +46,7 @@ namespace Siren
                     Token = Get("token"),
                     Sound = Get("sound"),
                     Volume = int.TryParse(Get("volume"), out var volume) ? volume : new Config().Volume,
+                    Ring = Get("ring") != "off",
                     Theme = Get("theme").Length > 0 ? Get("theme") : new Config().Theme,
                     SellerId = Get("sellerId"),
                     SellerSecret = Unprotect(Get("sellerSecret")),
@@ -66,6 +68,7 @@ namespace Siren
                 ["token"] = Token,
                 ["sound"] = Sound,
                 ["volume"] = Volume.ToString(),
+                ["ring"] = Ring ? "on" : "off",
                 ["theme"] = Theme,
                 ["sellerId"] = SellerId,
                 ["sellerSecret"] = Protect(SellerSecret),
@@ -112,7 +115,7 @@ namespace Siren
             }
             catch (Exception error)
             {
-                return "Siren can't reach that server. " + error.Message;
+                return "Eldorado Manager can't reach that server. " + error.Message;
             }
         }
 

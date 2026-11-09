@@ -259,11 +259,14 @@ namespace Siren
             }, false);
             pages = Whole(reply, "totalPages");
             records = Whole(reply, "recordCount");
-            return Rows(reply).Select(ToListed).ToList();
+            return Results(reply).Select(ToListed).ToList();
         }
 
-        private static Listed ToListed(Dictionary<string, object> raw)
+        private static Listed ToListed(Dictionary<string, object> row)
         {
+            var raw = Inner(row);
+            var user = Part(row, "user");
+            var alias = Text(raw, "gameSeoAlias");
             var art = Part(raw, "mainOfferImage");
             var file = art == null ? "" : Text(art, "smallImage");
             var values = List(raw, "tradeEnvironmentValues").ToList();
@@ -274,6 +277,8 @@ namespace Siren
                 Name = values.Count > 0 ? Text(values[values.Count - 1], "value") : Text(raw, "offerTitle"),
                 Kind = values.Count > 1 ? Text(values[0], "value") : "",
                 Picture = file.Length == 0 ? "" : Pictures + Uri.EscapeDataString(file),
+                Seller = user == null ? "" : Text(user, "username"),
+                Link = alias.Length == 0 ? "" : $"/{alias}/oi/{Text(raw, "id")}",   // the sweep reads item listings only, and items live under /oi/
                 Quantity = Whole(raw, "quantity"),
                 Price = Money(raw, "pricePerUnitInUSD"),
             };
@@ -635,7 +640,7 @@ namespace Siren
             var request = (HttpWebRequest)WebRequest.Create(Base + path);
             request.Method = method;
             request.Timeout = 30000;
-            request.UserAgent = "Siren";
+            request.UserAgent = "EldoradoManager";
             request.Accept = "application/json";
             request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
             if (signed) request.Headers[HttpRequestHeader.Authorization] = "Bearer " + Token();
@@ -700,7 +705,7 @@ namespace Siren
         private static string Explain(int status, string body)
         {
             if (status == 401 || status == 403) return "Eldorado refused the seller key. Check it in Settings.";
-            if (status == 429) return "Eldorado asked Siren to slow down.";
+            if (status == 429) return "Eldorado asked for fewer requests. Wait a minute and try again.";
             // Eldorado's own errors look like {"code":400,"messages":["..."],"correlationId":"..."}.
             var said = Regex.Match(body, "\"(?:messages?|detail|title)\"\\s*:\\s*\\[?\\s*\"([^\"]+)\"");
             return said.Success

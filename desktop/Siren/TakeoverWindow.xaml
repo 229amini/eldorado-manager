@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:Siren"
-        Title="Siren"
+        Title="Eldorado Manager"
         WindowStyle="None" ResizeMode="NoResize" Background="Black"
         ShowInTaskbar="False" Topmost="True"
         FontFamily="pack://application:,,,/Fonts/#Hind"
@@ -42,7 +42,7 @@
             </Grid.RowDefinitions>
 
             <DockPanel LastChildFill="False">
-                <TextBlock x:Name="Brand" Text="Siren" FontFamily="{StaticResource Numbers}" FontSize="34" />
+                <TextBlock x:Name="Brand" Text="Eldorado Manager" FontFamily="{StaticResource Numbers}" FontSize="34" />
                 <TextBlock x:Name="State" DockPanel.Dock="Right" FontSize="24" VerticalAlignment="Center" />
             </DockPanel>
 

@@ -7,11 +7,11 @@
     <UseWPF>true</UseWPF>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <AssemblyName>Siren</AssemblyName>
+    <AssemblyName>EldoradoManager</AssemblyName>
     <RootNamespace>Siren</RootNamespace>
-    <Version>1.2.0</Version>
-    <Product>Siren</Product>
-    <Description>Order alarms for Eldorado.gg sellers</Description>
+    <Version>1.3.0</Version>
+    <Product>Eldorado Manager</Product>
+    <Description>Order alarms and a shop dashboard for Eldorado.gg sellers</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>siren.ico</ApplicationIcon>
     <StartupObject>Siren.Program</StartupObject>

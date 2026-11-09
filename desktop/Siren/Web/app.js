@@ -200,7 +200,6 @@ function gate(o) {
 
 // The edit lives on the row, so changing a price never needs a second place to look.
 function quick(o, field, label, value, waiting) {
-  if (isClosed(o)) return h('span', { class: 'plain' }, value);
   return h('div', { class: waiting ? 'quick wait' : 'quick' },
     h('button', { type: 'button', tabindex: -1, 'data-do': 'step', 'data-field': field, 'data-dir': -1, 'aria-label': label + ' down' }, minus()),
     h('input', { 'data-edit': field, value, inputmode: 'decimal', autocomplete: 'off', spellcheck: 'false', 'aria-label': `${label} for ${o.title}` }),
@@ -233,12 +232,16 @@ function topBar() {
   const open = openOrders().length;
   const tabs = [['offers', 'Offers', state.offers.filter(isLive).length], ['orders', 'Orders', open], ['sales', 'Sales', null], ['insights', 'Insights', null]];
   return h('header', { class: 'top' },
-    h('b', { class: 'name' }, h('span', { class: 'mark' }, logo()), 'Siren'),
+    h('b', { class: 'name' }, h('span', { class: 'mark' }, logo()), 'Eldorado Manager'),
     h('nav', { role: 'tablist', 'aria-label': 'Sections' },
       tabs.map(([key, label, count]) => h('button', {
         type: 'button', role: 'tab', 'aria-selected': String(tab === key), 'data-do': 'tab', 'data-value': key,
       }, label, count ? h('span', { class: key === 'orders' ? 'count hot' : 'count' }, count) : null))),
     h('div', { class: 'end' }, checked(),
+      state.alarms ? h('button', {
+        type: 'button', class: state.ring ? 'tool' : 'tool off', 'data-do': 'ring', 'aria-pressed': String(!!state.ring),
+        title: state.ring ? 'New orders ring on this PC. Click to stay silent, for example when another app already rings for them.' : 'This PC stays silent for new orders. Click to ring again.',
+      }, state.ring ? 'Alarm on' : 'Alarm off') : null,
       h('button', { type: 'button', class: 'tool', 'data-do': 'refresh' }, 'Check now'),
       h('button', { type: 'button', class: 'tool round', 'data-do': 'flipTheme', title: state.theme === 'light' ? 'Dark mode' : 'Light mode', 'aria-label': state.theme === 'light' ? 'Dark mode' : 'Light mode' }, state.theme === 'light' ? moon() : sun()),
       h('button', { type: 'button', class: 'tool', 'data-do': 'settings' }, 'Settings')));
@@ -329,7 +332,10 @@ function actions(o) {
       h('button', { type: 'button', class: 'solid', 'data-do': 'confirm' }, 'Send this price'),
       h('button', { type: 'button', class: 'line', 'data-do': 'cancelPrice' }, 'Keep my price'));
   }
-  if (isClosed(o)) return null;
+  if (isClosed(o)) {
+    return h('div', { class: 'acts' },
+      h('button', { type: 'button', class: 'solid', 'data-do': 'reopen', disabled: !(Number(o.stockDraft) > 0) }, 'Reopen offer'));
+  }
   return h('div', { class: 'acts' },
     h('button', { type: 'button', class: 'solid', 'data-do': 'match', disabled: o.lowest === null || o.lowest === o.livePrice }, 'Match lowest price'),
     o.showUndo ? h('button', { type: 'button', class: 'line', 'data-do': 'undo' }, 'Undo price') : null,
@@ -348,6 +354,7 @@ function rivals(o) {
 }
 
 function where(o) {
+  if (isClosed(o)) return h('p', { class: 'insight' }, 'Eldorado closed this offer, usually because its stock ran out. Set the price and stock on its row, then Reopen offer.');
   if (o.site === null) return h('p', { class: 'insight' }, o.insight || `This offer is ${o.stateText.toLowerCase()}, so buyers can't see it.`);
   const away = o.site - PAGE;
   return h('div', { class: 'where' },
@@ -427,6 +434,8 @@ function bulkPanel() {
 }
 
 function offersPage() {
+  // A reopened or resumed offer can empty its view, and an empty view has no button to leave it.
+  if ((view === 'closed' || view === 'paused') && !state.offers.some(inView)) view = 'live';
   const list = shown();
   const pick = current(list);
   selected = pick ? pick.id : selected;
@@ -609,7 +618,7 @@ function hourChart(data) {
 function moveList(moves) {
   const labels = { fix: 'Fix', price: 'Price', stock: 'Stock', note: 'Note' };
   return h('section', { class: 'card moves' },
-    h('header', {}, h('h3', {}, 'Worth doing'), h('span', {}, 'Suggestions only. Siren changes nothing by itself.')),
+    h('header', {}, h('h3', {}, 'Worth doing'), h('span', {}, 'Suggestions only. Nothing changes by itself.')),
     moves.length ? moves.map(m => {
       const offer = m.offer && state.offers.find(o => o.id === m.offer);
       return h('div', { class: 'move-row', 'data-key': m.key },
@@ -623,7 +632,7 @@ function marketCard(market) {
   const all = market.rows || [];
   const rows = marketShown === 'missing' ? all.filter(r => !r.offer) : all;
   const label = market.sweeps ? `Watching since ${market.since}, ${plural(market.sweeps, 'check')}, the top ${market.seen.toLocaleString('en-US')} of ${market.total.toLocaleString('en-US')} offers` : '';
-  const blank = !market.sweeps ? 'Siren checks the public listing every 30 minutes. The first numbers need two checks.'
+  const blank = !market.sweeps ? 'The public listing is checked every 30 minutes. The first numbers need two checks.'
     : marketShown === 'missing' && all.length ? 'Everything moving right now is already in your shop.' : 'No stock has moved yet. Give it a few hours.';
   return h('section', { class: 'card items market' },
     h('header', {}, h('h3', {}, 'Selling on the market'), h('span', {}, market.early ? h('b', { class: 'pill' }, 'Early') : null, ' ', label)),
@@ -631,13 +640,21 @@ function marketCard(market) {
       segment('Show items', [['missing', 'Not in your shop'], ['all', 'Everything']], marketShown, 'marketShown'),
       h('p', { class: 'hint' }, 'An estimate from other sellers’ stock falling over the last 7 days. Stock can also fall for other reasons.')),
     rows.length ? h('table', {},
-      h('colgroup', {}, ['item', 'sellers', 'falls', 'low', 'typical', 'yours'].map(c => h('col', { class: 'm-' + c }))),
-      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'), ['Sellers moving', 'Stock falls', 'Cheapest', 'Typical', 'You'].map(t => h('th', { scope: 'col', class: 'n' }, t)))),
+      h('colgroup', {}, ['item', 'sellers', 'falls', 'low', 'sold', 'top', 'yours'].map(c => h('col', { class: 'm-' + c }))),
+      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'),
+        [['Sellers moving'], ['Stock falls'], ['Cheapest now', 'The lowest price listed right now'], ['Sold at', 'The middle price of the sales seen, one vote per sale'], ['Most sales', 'The offer with the most sales seen. Click to open it on Eldorado']]
+          .map(([t, tip]) => h('th', { scope: 'col', class: 'n', title: tip || null }, t)),
+        h('th', { scope: 'col', class: 'n' }, 'You'))),
       h('tbody', {}, rows.map(r => h('tr', { 'data-key': r.key, 'data-do': r.offer ? 'openOffer' : null, 'data-offer': r.offer || null, class: r.offer ? 'link' : null },
         h('td', {}, h('div', { class: 'it' }, r.picture ? h('img', { class: 'thumb', src: r.picture, alt: '', draggable: 'false' }) : h('span', { class: 'thumb none' }), h('div', { class: 'named' }, h('b', {}, r.name), r.kind ? h('small', {}, r.kind) : null))),
         h('td', { class: 'n' }, r.movers), h('td', { class: 'n' }, r.drops),
-        h('td', { class: 'n' }, '$' + r.low), h('td', { class: 'n' }, '$' + r.typical),
-        h('td', { class: 'n' }, r.offer ? '$' + r.yours : h('span', { class: 'pill' }, 'Not listed')))))) : h('p', { class: 'hint' }, blank));
+        h('td', { class: 'n' }, '$' + r.low),
+        h('td', { class: 'n' }, r.soldAt ? '$' + r.soldAt : h('span', { class: 'quiet' }, 'Not yet')),
+        h('td', { class: 'n' }, r.topLink
+          ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': r.topLink, title: `${r.topSeller}: ${plural(r.topSales, 'sale')} seen at $${r.topPrice}` },
+            h('span', {}, '$' + r.topPrice), h('small', {}, `${r.topSeller}, ${r.topSales}`))
+          : h('span', { class: 'quiet' }, 'Not yet')),
+        h('td', { class: 'n' }, r.offer ? h('span', { class: r.above ? 'above' : null, title: r.above ? 'Above the price these sales happened at' : null }, '$' + r.yours) : h('span', { class: 'pill' }, 'Not listed')))))) : h('p', { class: 'hint' }, blank));
 }
 
 function changeCard(changes) {
@@ -651,7 +668,7 @@ function changeCard(changes) {
         h('td', {}, h('b', {}, c.title)), h('td', { class: 'n quiet' }, c.day),
         h('td', { class: 'n' }, triangle(c.up), `${c.from} to ${c.to}`),
         h('td', { class: 'n' }, place(c.placeBefore, c.placeNow)),
-        h('td', { class: 'n' }, c.early ? h('span', { class: 'quiet' }, 'Too soon') : `${c.soldBefore} to ${c.soldAfter}`))))) : h('p', { class: 'hint' }, 'Siren keeps a daily record of each offer from now on. Change a price and its effect shows up here after a few days.'));
+        h('td', { class: 'n' }, c.early ? h('span', { class: 'quiet' }, 'Too soon') : `${c.soldBefore} to ${c.soldAfter}`))))) : h('p', { class: 'hint' }, 'A daily record of each offer is kept from now on. Change a price and its effect shows up here after a few days.'));
 }
 
 function insightsPage() {
@@ -747,6 +764,7 @@ const CLICKS = {
     draw();
   },
   notice: target => send('openUrl', { url: target.dataset.url }),
+  openTop: target => send('openUrl', { url: target.dataset.url }),
   dismiss: target => send('dismissNotice', { id: target.dataset.value }),
   ack: () => send('ack', { id: state.order && state.order.id }),
   openOrder: () => send('openOrder', { id: state.order && state.order.id }),

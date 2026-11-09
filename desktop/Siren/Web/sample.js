@@ -36,7 +36,7 @@
   const theme = (location.hash || '#dark').slice(1);
   const quiet = location.search.includes('quiet');
   const state = {
-    theme, sort: 'attention', problem: null, offline: false,
+    theme, alarms: true, ring: true, sort: 'attention', problem: null, offline: false,
     checked: now - 12000, siteChecked: now - 95000,
     order: quiet ? null : {
       id: 'demo', title: '13,500 V-Bucks top up', price: '64.90 USD', more: '', link: 'https://www.eldorado.gg/',
@@ -89,10 +89,10 @@
       market: {
         sweeps: 34, since: '6 Nov', early: true, seen: 1500, total: 55383,
         rows: [
-          { key: 'a', name: 'Mechanical Components', kind: 'Materials', picture: art('#7a4dff', '#1a1f5e'), drops: 9, movers: 6, low: '0.03', typical: '0.08', offer: '', yours: '' },
-          { key: 'b', name: 'Herbal Bandage', kind: 'Quick Use', picture: art('#00b7c3', '#0b3d91'), drops: 7, movers: 5, low: '0.05', typical: '0.10', offer: '', yours: '' },
-          { key: 'c', name: 'Heavy Fuze Grenade', kind: 'Quick Use', picture: art('#ffd166', '#7a4a00'), drops: 5, movers: 3, low: '0.04', typical: '0.11', offer: '7', yours: '0.11' },
-          { key: 'd', name: 'Shield Recharger', picture: '', drops: 3, movers: 2, low: '0.12', typical: '0.20', offer: '', yours: '' },
+          { key: 'a', name: 'Mechanical Components', kind: 'Materials', picture: art('#7a4dff', '#1a1f5e'), drops: 9, movers: 6, low: '0.03', soldAt: '0.05', topSeller: 'marko_77', topPrice: '0.04', topSales: 4, topLink: '/arc-raiders-items/oi/a1', offer: '', yours: '', above: false },
+          { key: 'b', name: 'Herbal Bandage', kind: 'Quick Use', picture: art('#00b7c3', '#0b3d91'), drops: 7, movers: 5, low: '0.05', soldAt: '0.09', topSeller: 'a_very_long_seller_name_here', topPrice: '0.08', topSales: 3, topLink: '/arc-raiders-items/oi/b1', offer: '', yours: '', above: false },
+          { key: 'c', name: 'Heavy Fuze Grenade', kind: 'Quick Use', picture: art('#ffd166', '#7a4a00'), drops: 5, movers: 3, low: '0.04', soldAt: '0.06', topSeller: 'sora', topPrice: '0.05', topSales: 2, topLink: '/arc-raiders-items/oi/c1', offer: '7', yours: '0.11', above: true },
+          { key: 'd', name: 'Shield Recharger', picture: '', drops: 3, movers: 2, low: '0.12', soldAt: '', topSeller: '', topPrice: '', topSales: 0, topLink: '', offer: '', yours: '', above: false },
         ],
       },
     },

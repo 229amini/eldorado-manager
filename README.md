@@ -41,7 +41,7 @@ The server runs on the Python standard library. No packages, no database, 128 MB
 
 <p align="center"><img src="docs/assets/app-offers.png" alt="The Eldorado Manager dashboard: offers with their place on the site, price rank and stock, next to a comparison with the top sellers" width="820"></p>
 
-1. Download [SirenSetup.exe](https://github.com/229amini/eldorado-manager/releases/latest) and double-click it. It needs no admin rights and no Python.
+1. Download [EldoradoManagerSetup.exe](https://github.com/229amini/eldorado-manager/releases/latest) and double-click it. It needs no admin rights and no Python.
 2. Windows may warn about an unknown app, because the installer has no paid certificate. Click **More info**, then **Run anyway**.
 3. Create a key on [Dashboard > Seller API](https://www.eldorado.gg/dashboard/seller-api), and paste it under **Eldorado key** in Settings.
 

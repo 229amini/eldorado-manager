@@ -143,7 +143,7 @@ namespace Siren
             var checks = offline + Enumerable.Range(0, 24).Sum(h => book.Online[h]);
             if (checks >= FewestPresenceChecks && offline * 10 >= checks)
                 Add("offline", "fix", $"Offline for {offline * 100 / checks}% of checks",
-                    "Buyers can't see your offers while Eldorado has you offline, so this time sells nothing. Siren counts this only while the dashboard is open.");
+                    "Buyers can't see your offers while Eldorado has you offline, so this time sells nothing. This is counted only while the dashboard is open.");
 
             var live = rows.Where(r => IsLive(r) && r.Offer.Currency == "USD").ToList();
             foreach (var raise in live.Select(r => Raise(r, sold)).Where(r => r != null).OrderByDescending(r => r.Gain).Take(MostRaises))
@@ -244,6 +244,7 @@ namespace Siren
             {
                 var days = pair.Value.Days.Where(d => string.CompareOrdinal(d.Key, since) >= 0).Select(d => d.Value).ToList();
                 mine.TryGetValue(Match(pair.Value.Kind, pair.Value.Name), out var row);
+                var falls = days.SelectMany(d => d.Falls ?? new List<Fall>()).ToList();
                 return new
                 {
                     Item = pair.Value,
@@ -252,6 +253,9 @@ namespace Siren
                     Movers = days.SelectMany(d => d.Offers).Distinct().Count(),
                     Units = days.Sum(d => d.Units),
                     Row = row,
+                    SoldAt = SoldAt(falls),
+                    Top = falls.GroupBy(f => f.Offer).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Sum(f => f.Units))
+                        .Select(g => new { Last = g.Last(), Sales = g.Count() }).FirstOrDefault(),
                 };
             }).Where(x => x.Drops > 0).OrderByDescending(x => x.Movers).ThenByDescending(x => x.Drops).ThenByDescending(x => x.Units).Take(MarketRows);
             return new Dictionary<string, object>
@@ -270,11 +274,27 @@ namespace Siren
                     ["drops"] = x.Drops,
                     ["movers"] = x.Movers,
                     ["low"] = OfferRow.FormatPrice(x.Item.Low),
-                    ["typical"] = OfferRow.FormatPrice(x.Item.Typical),
+                    ["soldAt"] = x.SoldAt == null ? "" : OfferRow.FormatPrice(x.SoldAt.Value),
+                    ["topSeller"] = x.Top?.Last.Seller ?? "",
+                    ["topPrice"] = x.Top == null ? "" : OfferRow.FormatPrice(x.Top.Last.Price),
+                    ["topSales"] = x.Top?.Sales ?? 0,
+                    ["topLink"] = x.Top?.Last.Link ?? "",
                     ["offer"] = x.Row?.Offer.Id ?? "",
                     ["yours"] = x.Row == null ? "" : OfferRow.FormatPrice(x.Row.LivePrice),
+                    ["above"] = x.Row != null && x.SoldAt != null && x.Row.LivePrice > x.SoldAt.Value * (1 + SmallestRaise),
                 }).ToList(),
             };
+        }
+
+        /// <summary>
+        /// The middle price of the sales seen, one vote per sale. Listed prices mislead: a few sellers park
+        /// offers far above the market and never sell them, which drags a middle of listed prices up.
+        /// </summary>
+        private static double? SoldAt(List<Fall> falls)
+        {
+            if (falls.Count == 0) return null;
+            var prices = falls.Select(f => f.Price).OrderBy(p => p).ToList();
+            return prices[prices.Count / 2];
         }
 
         private static string Match(string kind, string name) => (kind + "|" + name).ToLowerInvariant();

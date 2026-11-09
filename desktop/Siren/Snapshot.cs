@@ -30,7 +30,7 @@ namespace Siren
                 {
                     Id = "notice",
                     IsNotice = true,
-                    Header = "Siren is on watch",
+                    Header = "Eldorado Manager is on watch",
                     Text = "You'll see your next order here.",
                 });
                 Save(window.PreviewTakeover(AlarmWindow.Sample(1200, 0.9), 62), Path.Combine(folder, "critical-left.png"));

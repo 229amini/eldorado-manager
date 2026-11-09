@@ -97,12 +97,11 @@ namespace Siren
         private string Explain(Standing standing)
         {
             if (state == "Offline") return "You're offline on Eldorado, so buyers can't see this offer. Go online on the site to list it again.";
-            if (state == "Paused") return "This offer is paused, so buyers can't see it.";
-            if (!IsListed) return $"Eldorado lists this offer as {state.ToLowerInvariant()}, so buyers can't see it.";
+            if (state == "Paused") return "This offer is paused, so buyers can't see it.";            if (!IsListed) return $"Eldorado lists this offer as {state.ToLowerInvariant()}, so buyers can't see it.";
             if (SiteValue == null) return "Checking where buyers see this offer.";
             if (SiteValue <= Market.SitePageSize) return "Buyers see this offer on page 1.";
             var gap = SiteValue - Market.SitePageSize;
-            if (Offer.Currency != "USD") return $"{gap} places from page 1. Siren compares prices in USD only.";
+            if (Offer.Currency != "USD") return $"{gap} places from page 1. Prices are compared in USD only.";
             if (standing.PricePlace <= 3)
                 return $"You're among the cheapest, but the site still lists you at #{SiteValue}. Price isn't what's holding this offer back.";
             return $"{gap} places from page 1, with {standing.Cheaper} sellers cheaper than you.";

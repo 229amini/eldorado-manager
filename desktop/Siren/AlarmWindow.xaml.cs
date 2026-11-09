@@ -130,7 +130,7 @@ namespace Siren
         {
             Id = "welcome",
             IsNotice = true,
-            Header = "Siren is on watch",
+            Header = "Eldorado Manager is on watch",
             Text = "You'll see your next order here.",
         });
 

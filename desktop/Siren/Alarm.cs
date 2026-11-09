@@ -70,7 +70,7 @@ namespace Siren
             var colon = title.IndexOf(':');
             var alarm = new Alarm
             {
-                Header = colon > 0 ? title.Substring(0, colon) : title.Length > 0 ? title : "Siren",
+                Header = colon > 0 ? title.Substring(0, colon) : title.Length > 0 ? title : "Eldorado Manager",
                 Text = Str(message, "message"),
                 Link = Str(message, "click"),
                 Priority = priority,

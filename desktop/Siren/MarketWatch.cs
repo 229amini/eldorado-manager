@@ -16,8 +16,20 @@ namespace Siren
         public string Name;
         public string Kind = "";   // a weapon and its blueprint share a name, so this tells them apart
         public string Picture = "";
+        public string Seller = "";
+        public string Link = "";   // the offer's page on Eldorado, relative to the site
         public int Quantity;
         public double Price;
+    }
+
+    /// <summary>One fall in another seller's stock: most likely a sale, at the price the offer had then.</summary>
+    public sealed class Fall
+    {
+        public string Offer = "";
+        public string Seller = "";
+        public string Link = "";
+        public double Price;
+        public int Units;
     }
 
     /// <summary>What the shop trades in. The dashboard leaves it for the market watch, which runs without the seller key.</summary>
@@ -32,6 +44,7 @@ namespace Siren
         public int Drops;
         public long Units;
         public List<string> Offers = new List<string>();
+        public List<Fall> Falls = new List<Fall>();   // empty on days recorded before 1.3.0
     }
 
     public sealed class WatchedItem
@@ -147,6 +160,7 @@ namespace Siren
                     counted.Drops++;
                     counted.Units += fell;
                     if (!counted.Offers.Contains(offer.Id)) counted.Offers.Add(offer.Id);
+                    counted.Falls.Add(new Fall { Offer = offer.Id, Seller = offer.Seller, Link = offer.Link, Price = offer.Price, Units = fell });
                 }
             }
             foreach (var offer in listed) stock[offer.Id] = offer.Quantity;

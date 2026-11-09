@@ -93,7 +93,7 @@ Your watch shows what your phone shows, so you only need to allow one app:
 
 ## 8. Add the PC alarm
 
-Download `SirenSetup.exe` from the [latest release](https://github.com/229amini/eldorado-manager/releases/latest) and run it. Under **Alarm server**, enter the same ntfy address and topic you put in `.env`. Add your Eldorado key under **Eldorado key** and you get the shop dashboard too. See [Windows app](desktop.md).
+Download `EldoradoManagerSetup.exe` from the [latest release](https://github.com/229amini/eldorado-manager/releases/latest) and run it. Under **Alarm server**, enter the same ntfy address and topic you put in `.env`. Add your Eldorado key under **Eldorado key** and you get the shop dashboard too. See [Windows app](desktop.md).
 
 ## You're done
 

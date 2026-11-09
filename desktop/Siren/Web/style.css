@@ -65,6 +65,7 @@ aside .line:hover:not(:disabled) { background: var(--line); }
 
 .tool { height: 36px; padding: 0 13px; background: var(--panel); font-size: 14px; font-weight: 700; white-space: nowrap; }
 .tool:hover, .tool[aria-pressed=true] { background: var(--raised); }
+.tool.off { color: var(--muted); }
 .round { width: 36px; padding: 0; display: grid; place-items: center; }
 
 /* The frame */
@@ -278,7 +279,11 @@ aside .hint { margin: 0; }
 .market-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 6px; }
 .market-bar .hint { margin: 0; text-align: right; }
 .card > header span .pill { margin-right: 4px; }
-.m-sellers { width: 118px; } .m-falls { width: 92px; } .m-low, .m-typical { width: 84px; } .m-yours { width: 104px; }
+.m-sellers { width: 118px; } .m-falls { width: 92px; } .m-low, .m-sold { width: 96px; } .m-top { width: 150px; } .m-yours { width: 104px; }
+.seller { display: inline-grid; justify-items: end; max-width: 100%; padding: 2px 6px; border: 0; border-radius: 8px; background: none; color: inherit; font: inherit; line-height: 1.2; cursor: pointer; }
+.seller:hover { background: var(--raised); }
+.seller small { max-width: 136px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; text-decoration: underline; }
+.above { color: var(--down); font-weight: 700; }
 .p-day { width: 76px; } .p-price { width: 150px; } .p-place { width: 130px; } .p-orders { width: 96px; }
 .hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
 
