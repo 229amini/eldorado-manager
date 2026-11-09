@@ -1,8 +1,17 @@
 # Changelog
 
+## Unreleased
+
+The code follows the new name. If you run the server, update your commands:
+
+- Python package `eldorado_manager`: `python -m eldorado_manager run`, `check` and `demo`
+- Docker Compose service is now `manager`: `docker compose logs manager`. The state volume is now `manager-data`; copy `state.json` over from the old volume to keep acknowledged orders.
+- ntfy actions send `X-Manager-*` headers. The Windows app still reads the old ones from older servers.
+- The web dashboard asks for its token once more
+
 ## 1.3.0
 
-The project is now called Eldorado Manager, and the Windows app follows: `EldoradoManagerSetup.exe` installs `EldoradoManager.exe` in `%LOCALAPPDATA%\EldoradoManager`. Run it over 1.2.0 and it carries your settings, history and market data across, then removes the old Siren install.
+The project is now called Eldorado Manager, and the Windows app follows: `EldoradoManagerSetup.exe` installs `EldoradoManager.exe` in `%LOCALAPPDATA%\EldoradoManager`. Run it over 1.2.0 and it carries your settings, history and market data across, then removes the old install.
 
 - Windows: an **Alarm on / off** switch in the dashboard and in Settings. Turn it off when another app already rings for your orders. The market estimate keeps running.
 - Windows: closed offers take a new price and stock on the row, and **Reopen offer** sends both to list the offer again
@@ -25,7 +34,7 @@ The Windows app is new. It replaces the Python alarm and adds a shop dashboard.
 - ntfy: the order link moved from a tap to an **Open** button, so tapping an alert no longer opens a browser
 - ntfy: alerts carry the deadline for the Windows countdown
 
-Turn off **Keep alerting for highest priority** in ntfy on your phone. Siren repeats alerts by itself, and ntfy's loop can't stop from a button.
+Turn off **Keep alerting for highest priority** in ntfy on your phone. The server repeats alerts by itself, and ntfy's loop can't stop from a button.
 
 Price edits have run on a live account. Stock, pause, deliver, extend and bulk changes follow Eldorado's API reference but haven't run on a live account yet.
 

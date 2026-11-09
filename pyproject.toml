@@ -8,17 +8,17 @@ dynamic = ["version"]
 dependencies = []
 
 [project.scripts]
-siren = "siren.__main__:main"
+eldorado-manager = "eldorado_manager.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["siren"]
+packages = ["eldorado_manager"]
 
 [tool.setuptools.dynamic]
-version = { attr = "siren.__version__" }
+version = { attr = "eldorado_manager.__version__" }
 
 [tool.setuptools.package-data]
-siren = ["static/*"]
+eldorado_manager = ["static/*"]

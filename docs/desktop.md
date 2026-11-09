@@ -21,10 +21,10 @@ You need Windows 10 or 11. You don't need admin rights or Python.
 
 1. Download `EldoradoManagerSetup.exe` from the [latest release](https://github.com/229amini/eldorado-manager/releases/latest).
 2. Double-click it.
-3. Windows may warn that it doesn't recognize the app, because the installer has no paid code-signing certificate. Click **More info**, then **Run anyway**. The source is in [`desktop/Siren`](../desktop/Siren), and you can [build it yourself](#build-it-yourself).
+3. Windows may warn that it doesn't recognize the app, because the installer has no paid code-signing certificate. Click **More info**, then **Run anyway**. The source is in [`desktop/EldoradoManager`](../desktop/EldoradoManager), and you can [build it yourself](#build-it-yourself).
 4. Fill in Settings. It opens by itself the first time.
 
-To update, run the new `EldoradoManagerSetup.exe` over the old one. Your settings stay. Version 1.2.0 and older installed as Siren; the new installer moves your settings and data over and removes the old app.
+To update, run the new `EldoradoManagerSetup.exe` over the old one. Your settings stay. Version 1.2.0 and older installed under an older name; the new installer moves your settings and data over and removes the old app.
 
 ## First-time settings
 

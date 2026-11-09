@@ -16,15 +16,15 @@ Eldorado's Seller API has no webhooks, so Eldorado Manager polls it. Answers tra
 
 | File | Job |
 |---|---|
-| `siren/engine.py` | The poll loop and every alarm decision. Start reading here |
-| `siren/deadline.py` | Delivery windows, stages and repeat rates. Pure functions |
-| `siren/eldorado.py` | API client and the `Order` and `Notice` models |
-| `siren/channels.py` | Alert delivery |
-| `siren/dashboard.py` | The web server |
-| `siren/static/index.html` | The whole dashboard: one page, no build step |
-| `siren/demo.py` | The fake account behind `siren demo` |
-| `siren/config.py` | Environment variables |
-| `desktop/Siren/` | The Windows app and installer in one exe. See [below](#windows-app) |
+| `eldorado_manager/engine.py` | The poll loop and every alarm decision. Start reading here |
+| `eldorado_manager/deadline.py` | Delivery windows, stages and repeat rates. Pure functions |
+| `eldorado_manager/eldorado.py` | API client and the `Order` and `Notice` models |
+| `eldorado_manager/channels.py` | Alert delivery |
+| `eldorado_manager/dashboard.py` | The web server |
+| `eldorado_manager/static/index.html` | The whole dashboard: one page, no build step |
+| `eldorado_manager/demo.py` | The fake account behind `eldorado-manager demo` |
+| `eldorado_manager/config.py` | Environment variables |
+| `desktop/EldoradoManager/` | The Windows app and installer in one exe. See [below](#windows-app) |
 
 ## One poll
 

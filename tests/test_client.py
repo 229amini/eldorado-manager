@@ -1,10 +1,10 @@
 import json
 import unittest
 
-from siren.channels import Alert, Discord, Ntfy, Pushover, Telegram, Webhook, build_channels
-from siren.config import Settings
-from siren.eldorado import EldoradoClient, Notice, Order
-from siren.net import HttpError
+from eldorado_manager.channels import Alert, Discord, Ntfy, Pushover, Telegram, Webhook, build_channels
+from eldorado_manager.config import Settings
+from eldorado_manager.eldorado import EldoradoClient, Notice, Order
+from eldorado_manager.net import HttpError
 
 RAW_ORDER = {
     "id": "abc", "purchaseQuantity": 2, "buyerUsername": "bob",
@@ -95,7 +95,7 @@ class Channels(unittest.TestCase):
         alert = Alert("order", 5, "New order", "Gold", None, "o1", deadline=1000.0, window=1200.0)
         Ntfy("http://ntfy", "https://public", "topic", "", transport=wire).send(alert)
         headers = wire.calls[0][2]["json_body"]["actions"][0]["headers"]
-        self.assertEqual((headers["X-Siren-Deadline"], headers["X-Siren-Window"]), ("1000.0", "1200.0"))
+        self.assertEqual((headers["X-Manager-Deadline"], headers["X-Manager-Window"]), ("1000.0", "1200.0"))
 
     def test_ntfy_reads_acks(self):
         line = json.dumps({"id": "m1", "event": "message", "message": "o1"})
@@ -118,7 +118,7 @@ class Channels(unittest.TestCase):
         Discord("https://hook", transport=wire).send(ALERT)
         self.assertEqual(wire.calls[0][2]["json_body"]["content"], "@here")
 
-    def test_pushover_uses_siren_sound(self):
+    def test_pushover_uses_loudest_sound(self):
         wire = Wire()
         Pushover("app", "user", transport=wire).send(ALERT)
         self.assertIn("sound=siren", wire.calls[0][2]["data"])
@@ -153,7 +153,7 @@ class WebhookChannel(unittest.TestCase):
         self.assertTrue(self.sent(alert)[0]["ring"])
 
     def test_skips_the_startup_note_and_the_hurry_stage(self):
-        self.assertEqual(self.sent(Alert("system", 2, "Siren is on watch", "")), [])
+        self.assertEqual(self.sent(Alert("system", 2, "Eldorado Manager is on watch", "")), [])
         self.assertEqual(self.sent(Alert("order", 5, "x", "", None, "o1", False, 1.0, 1, "Deliver soon")), [])
 
     def test_a_notice_is_a_plain_notification(self):

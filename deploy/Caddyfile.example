@@ -5,6 +5,6 @@ ntfy.example.com {
 	reverse_proxy 127.0.0.1:2586
 }
 
-siren.example.com {
+manager.example.com {
 	reverse_proxy 127.0.0.1:8787
 }

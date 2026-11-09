@@ -6,6 +6,6 @@ __pycache__/
 desktop/.build-venv/
 desktop/build/
 desktop/dist/
-desktop/Siren/bin/
-desktop/Siren/obj/
+desktop/EldoradoManager/bin/
+desktop/EldoradoManager/obj/
 .impeccable/

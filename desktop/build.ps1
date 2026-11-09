@@ -7,7 +7,7 @@ $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $here
 
-dotnet build Siren\Siren.csproj -c Release -o build
+dotnet build EldoradoManager\EldoradoManager.csproj -c Release -o build
 if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed' }
 
 New-Item -ItemType Directory -Force dist | Out-Null

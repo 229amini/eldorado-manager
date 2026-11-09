@@ -9,7 +9,7 @@ Use [GitHub's private reporting](https://github.com/229amini/eldorado-manager/se
 - Your Eldorado Client ID and secret, in `.env`. Anyone who has them can manage your offers and orders, so run `chmod 600 .env` and keep the file out of git. Eldorado Manager's `.gitignore` already skips it.
 - Your channel tokens, in the same file.
 - A state file with order ids and notification ids. It holds no credentials.
-- In the Windows app, your Eldorado Client ID and secret in `%LOCALAPPDATA%\Siren\config.json`. Eldorado Manager encrypts the secret with your Windows account (DPAPI), so another Windows user or a copy of the file can't read it. Your ntfy token sits in the same file unencrypted.
+- In the Windows app, your Eldorado Client ID and secret in `%LOCALAPPDATA%\EldoradoManager\config.json`. Eldorado Manager encrypts the secret with your Windows account (DPAPI), so another Windows user or a copy of the file can't read it. Your ntfy token sits in the same file unencrypted.
 - In the same folder, `history.json` and `market.json`: your offers' daily price and place, and counts from public listings.
 
 If a secret leaks, revoke it on the Eldorado Seller API page at once and generate a new one.

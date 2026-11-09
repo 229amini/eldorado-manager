@@ -39,13 +39,13 @@ ELDORADO_CLIENT_SECRET=your-client-secret
 The fastest choice is the free public ntfy server:
 
 1. Install the [ntfy app](https://ntfy.sh/docs/subscribe/phone/) on your phone.
-2. Invent a long random topic name, because anyone who knows the name can read it. For example: `siren-7f3kq9x2mz`.
+2. Invent a long random topic name, because anyone who knows the name can read it. For example: `eldorado-7f3kq9x2mz`.
 3. Subscribe to that topic in the app.
 4. Add it to `.env`:
 
    ```sh
    NTFY_URL=https://ntfy.sh
-   NTFY_TOPIC=siren-7f3kq9x2mz
+   NTFY_TOPIC=eldorado-7f3kq9x2mz
    ```
 
 Your order titles and buyer names pass through that public server. For privacy, [host your own](deployment.md#run-your-own-ntfy-server), or use another channel from [Channels](channels.md).
@@ -53,7 +53,7 @@ Your order titles and buyer names pass through that public server. For privacy, 
 ## 4. Test it
 
 ```sh
-docker compose run --rm siren python -m siren check
+docker compose run --rm manager python -m eldorado_manager check
 ```
 
 You should see your order counts, and your phone should ring with a test alert. This command changes nothing on your account.
@@ -64,7 +64,7 @@ If a line says `FAILED`, it names the reason. A `401` from Eldorado means the Cl
 
 ```sh
 docker compose up -d
-docker compose logs -f siren
+docker compose logs -f manager
 ```
 
 Open <http://127.0.0.1:8787> on that machine to see the dashboard. To reach it from elsewhere, read [Deployment](deployment.md#reach-the-dashboard-from-another-device).

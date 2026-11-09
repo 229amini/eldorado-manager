@@ -1,4 +1,4 @@
-"""Generates the alarm sounds with the standard library, so Siren ships no third-party audio.
+"""Generates the alarm sounds with the standard library, so the app ships no third-party audio.
 
 Run: python desktop/tools/make_sounds.py
 """
@@ -9,7 +9,7 @@ import wave
 from pathlib import Path
 
 RATE = 22050
-OUT = Path(__file__).resolve().parent.parent / "Siren" / "Sounds"
+OUT = Path(__file__).resolve().parent.parent / "EldoradoManager" / "Sounds"
 
 
 def write(name, samples):
@@ -39,7 +39,7 @@ def chime():
         yield sum(bell(frequency, t - start) for start, frequency in notes)
 
 
-def siren():
+def alarm():
     """A two-tone wail whose phase stays continuous, so the loop has no click."""
     phase, length = 0.0, 1.2
     for i in range(int(RATE * length)):
@@ -53,5 +53,5 @@ def siren():
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     write("chime.wav", chime())
-    write("siren.wav", siren())
+    write("alarm.wav", alarm())
     print("wrote", OUT)

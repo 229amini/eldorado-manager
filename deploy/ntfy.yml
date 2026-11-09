@@ -1,4 +1,4 @@
-# Private ntfy server for Siren. NTFY_BASE_URL comes from docker-compose.yml.
+# Private ntfy server for Eldorado Manager. NTFY_BASE_URL comes from docker-compose.yml.
 listen-http: ":2586"
 behind-proxy: true
 auth-file: /var/lib/ntfy/user.db

@@ -1,10 +1,10 @@
 import unittest
 
-from siren.channels import Alert, Channel
-from siren.config import Settings
-from siren.deadline import Stage, parse_time, repeat_interval, stage_for
-from siren.eldorado import Notice, Order
-from siren.engine import Engine
+from eldorado_manager.channels import Alert, Channel
+from eldorado_manager.config import Settings
+from eldorado_manager.deadline import Stage, parse_time, repeat_interval, stage_for
+from eldorado_manager.eldorado import Notice, Order
+from eldorado_manager.engine import Engine
 
 
 class FakeClock:

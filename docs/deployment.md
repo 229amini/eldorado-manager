@@ -24,7 +24,7 @@ Eldorado Manager needs Python 3.11 or newer and nothing else.
 
 ```sh
 set -a; . ./.env; set +a
-STATE_FILE=./state.json python -m siren run
+STATE_FILE=./state.json python -m eldorado_manager run
 ```
 
 For a service that survives reboots, use this systemd unit:
@@ -35,12 +35,12 @@ Description=Eldorado Manager
 After=network-online.target
 
 [Service]
-User=siren
+User=eldorado-manager
 WorkingDirectory=/opt/eldorado-manager
 EnvironmentFile=/opt/eldorado-manager/.env
-Environment=STATE_FILE=/var/lib/siren/state.json
-StateDirectory=siren
-ExecStart=/usr/bin/python3 -m siren run
+Environment=STATE_FILE=/var/lib/eldorado-manager/state.json
+StateDirectory=eldorado-manager
+ExecStart=/usr/bin/python3 -m eldorado_manager run
 Restart=always
 
 [Install]
@@ -73,9 +73,9 @@ Your order details then stay on your server.
    ```sh
    docker compose exec ntfy ntfy user add phone
    docker compose exec ntfy ntfy access phone 'eldorado*' rw
-   docker compose exec ntfy ntfy user add siren
-   docker compose exec ntfy ntfy access siren 'eldorado*' rw
-   docker compose exec ntfy ntfy token add siren
+   docker compose exec ntfy ntfy user add manager
+   docker compose exec ntfy ntfy access manager 'eldorado*' rw
+   docker compose exec ntfy ntfy token add manager
    ```
 
 4. Put the token in `.env` as `NTFY_TOKEN`, then restart:

@@ -77,7 +77,7 @@ When the order closes, Eldorado Manager posts `{"key": "...", "resolved": true}`
 
 ## Write your own channel
 
-Add a class to `siren/channels.py`, then register it in `build_channels()`. This one posts to Slack:
+Add a class to `eldorado_manager/channels.py`, then register it in `build_channels()`. This one posts to Slack:
 
 ```python
 class Slack(Channel):

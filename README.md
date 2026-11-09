@@ -12,7 +12,7 @@
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-brightgreen">
 </p>
 
-<p align="center"><img src="docs/assets/siren.gif" alt="The Eldorado Manager dashboard turning from blue to amber to red as a delivery deadline gets close" width="820"></p>
+<p align="center"><img src="docs/assets/dashboard.gif" alt="The Eldorado Manager dashboard turning from blue to amber to red as a delivery deadline gets close" width="820"></p>
 
 ## Pick what you need
 
@@ -62,7 +62,7 @@ You don't need an account or credentials for this.
 ```sh
 git clone https://github.com/229amini/eldorado-manager.git
 cd eldorado-manager
-python -m siren demo --scene critical
+python -m eldorado_manager demo --scene critical
 ```
 
 Open <http://127.0.0.1:8787>. Other scenes: `quiet`, `calm`, `hurry`, `late`. Click **Got it** to stop the beam.
@@ -78,7 +78,7 @@ You need a machine that stays on, such as a small VPS, and Docker.
    ```
 3. Test everything. This reads your account and changes nothing:
    ```sh
-   docker compose run --rm siren python -m siren check
+   docker compose run --rm manager python -m eldorado_manager check
    ```
 4. Start it:
    ```sh
@@ -125,4 +125,14 @@ Bug reports and new channels are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) exp
 
 ## License
 
-[MIT](LICENSE). Eldorado Manager is an independent project, and Eldorado.gg does not build, endorse or support it.
+[MIT](LICENSE).
+
+Includes:
+
+- Microsoft WebView2 SDK, BSD-style license
+- Code adapted from [Dynamic Island for Windows](https://github.com/zab1yak/dynamic-island-windows), MIT
+- Big Shoulders Display, Atkinson Hyperlegible and Hind fonts, SIL Open Font License 1.1
+
+Full notices: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+Eldorado Manager is an independent project, and Eldorado.gg does not build, endorse or support it.
