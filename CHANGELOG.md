@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.4.0
 
 The code follows the new name. If you run the server, update your commands:
 

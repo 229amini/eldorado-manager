@@ -9,7 +9,7 @@
     <Nullable>disable</Nullable>
     <AssemblyName>EldoradoManager</AssemblyName>
     <RootNamespace>EldoradoManager</RootNamespace>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <Product>Eldorado Manager</Product>
     <Description>Order alarms and a shop dashboard for Eldorado.gg sellers</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
