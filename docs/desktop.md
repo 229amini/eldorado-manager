@@ -122,7 +122,7 @@ To use your own alarm sound, add a path to a `.wav` file as `"sound"` in `%LOCAL
 - Sales totals add up every order as USD.
 - Eldorado has no call for all your currency offers, so the dashboard asks per game your item offers are in. A seller with currency offers only won't see them yet.
 - Eldorado's API has no chat, balance or offer photo calls, so the app doesn't either.
-- The maintainer has tested price edits, stock edits and **Reopen offer** on a live account. Pause, deliver, extend and **Change many** follow Eldorado's API reference but haven't run on a live account yet. Try them on a cheap offer first.
+- The maintainer has tested price edits, stock edits, pause, resume and **Reopen offer** on a live account. Deliver, extend and **Change many** follow Eldorado's API reference but haven't run on a live account yet. Try them on a cheap offer first.
 
 ## Uninstall
 
