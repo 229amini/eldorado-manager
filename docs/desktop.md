@@ -78,7 +78,7 @@ Type a new price or stock on the row. SellerDesk sends it 6 seconds after your l
 
 If Eldorado refuses an edit, the row turns red and keeps the value you typed. A line under it gives Eldorado's reason, with **Send again** and **Discard my change**. When the reason is the rate limit, the app sends it again every 90 seconds until it lands. After a save, the app reads your offers again and checks the new price is there. If Eldorado still shows the old one, the row turns red too.
 
-**Sold at** shows the middle price of the sales other sellers made on the same item this week, with the count under it. Green means your price sits inside the range most of those sales happened in. Red means you're below or above all of it. The side panel draws that range with your price on it, and offers **Set price to** the middle when the data holds enough sales.
+**Others sold at** shows the typical price other sellers sold the same item for this week, with the number of sales under it. Green means your price sits inside the range most of those sales happened in. Red means you're below or above all of it. The side panel draws that range on a line, with the cheapest listing, the usual range, the typical sale and your price marked and named under it. It offers **Set price to** the typical price when there are enough sales to go on.
 
 Click a row to open the side panel. It compares your price, delivery time and ratings with the top 5 sellers and names your biggest gap.
 
@@ -116,9 +116,10 @@ From your own orders of the last 90 days:
 Finance needs the shared server. It records whose stock each sale was, so you can settle with the people you sell for.
 
 1. Click **Add person** and give each person a name.
-2. Under **To assign**, pick an order. Give all its units to one person, or split them, for example 5 to one person and 5 to another. Click **Save**.
-3. Click a person to see what they earned, what you paid, and what you still owe. Record each payment there.
-4. **Export to Excel** writes their work list for the dates you pick: each order with their units and share, then their payments and balance. **Export everyone** writes one sheet per person and a summary.
+2. Under **To assign**, each order has a button per person. One click gives that person every unit still unassigned and saves. To split an order, click **Split** or the row: each person gets a **−** and **+**, **All**, **Rest** (the units nobody has yet) and **Half**. Click **Save**.
+3. **Per person** shows one column per person with the orders they have from the last 90 days, each with its picture and units. Click an order to fix who it belongs to.
+4. Click a person's card at the top to see what they earned, what you paid, and what you still owe. Record each payment there.
+5. **Export to Excel** writes their work list for the dates you pick: each order with their units and share, then their payments and balance. **Export everyone** writes one sheet per person and a summary.
 
 A share counts the money after Eldorado's fee, not the order total. Eldorado's order API carries no fee, so your server reads the fee from Eldorado's sales export once an order clears, about 5 days after the sale. Until then it estimates the fee from your recent sales and marks the amount **est**.
 
@@ -138,7 +139,7 @@ Eldorado publishes no sales numbers per item. So every 30 minutes SellerDesk rea
 
 Each row shows the cheapest price listed right now, and two numbers from the falls themselves:
 
-- **Sold at** is the middle price of the sales it saw, one vote per sale. Price near this number when you list the item. The cheapest offer often sits there with no buyers.
+- **Typical sale** is the middle price of the sales it saw, one vote per sale. Price near this number when you list the item. The cheapest offer often sits there with no buyers.
 - **Most sales** names the offer that sold most and its price. Click it to open that offer on Eldorado and compare its delivery time and ratings with yours.
 
 Both start empty and fill in after the second check.

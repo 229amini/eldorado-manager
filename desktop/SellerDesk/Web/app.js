@@ -313,7 +313,7 @@ function offerTable(list, pick) {
   }
   return h('div', { class: 'scroll' }, h('table', { class: 'offers' },
     h('colgroup', {}, ['offer', 'place', 'rank', 'low', 'soldat', 'price', 'stock', 'sold'].map(c => h('col', { class: 'c-' + c }))),
-    h('thead', {}, h('tr', {}, [['Offer'], ['Place'], ['Price rank'], ['Lowest'], ['Sold at', 'The middle price of the sales other sellers made this week. Green: you are inside the range most sales happen in.'], ['Your price'], ['Stock'], ['Sold 30 d']]
+    h('thead', {}, h('tr', {}, [['Offer'], ['Place'], ['Price rank'], ['Lowest'], ['Others sold at', 'The typical price other sellers sold this item for this week. Green: your price is in the usual range. Red: it is outside it.'], ['Your price'], ['Stock'], ['Sold 30 d']]
       .map(([t, tip]) => h('th', { scope: 'col', title: tip || null }, t)))),
     h('tbody', {}, list.flatMap(o => [h('tr', {
       'data-key': o.id, 'data-do': 'pick', 'data-id': o.id, tabindex: 0,
@@ -338,7 +338,7 @@ function soldAtCell(o) {
   const p = priceOf(o);
   if (!p) return h('span', { class: 'quiet' }, o.kind === 'Currency' ? '' : 'No data');
   if (!p.soldAt) return h('span', { class: 'quiet', title: 'No sales seen for this item this week' }, 'No sales');
-  return h('span', { class: 'sold-at ' + (p.verdict || ''), title: p.advice || '' }, fit(p.soldAt), h('small', {}, plural(p.sales, 'sale')));
+  return h('span', { class: 'sold-at ' + (p.verdict || ''), title: p.advice || '' }, fit(p.soldAt), h('small', {}, `${plural(p.sales, 'sale')} this week`));
 }
 
 // Under the place: the range sales happen in, with your price marked on it.
@@ -349,18 +349,21 @@ function priceBand(o) {
   const at = v => Math.max(0, Math.min(100, (v - lo) / ((hi - lo) || 1) * 100));
   const mark = v => Math.max(1, Math.min(99, at(v)));   // a mark at either end stays inside the line
   return h('section', { class: 'band-card' },
-    h('h3', {}, 'What this sells for'),
+    h('h3', {}, `What other sellers sold it for this week, ${plural(p.sales, 'sale')}`),
     h('div', { class: 'band-line', role: 'img', 'aria-label': `Most sales between ${fit(p.from)} and ${fit(p.to)}, you at ${fit(o.livePrice)}` },
       h('i', { class: 'range', 'data-left': at(p.from), 'data-width': Math.max(2, at(p.to) - at(p.from)) }),
       h('i', { class: 'mark low', 'data-left': mark(p.low), title: 'Cheapest listed ' + fit(p.low) }),
-      h('i', { class: 'mark mid', 'data-left': mark(p.soldAt), title: 'Sold at ' + fit(p.soldAt) }),
+      h('i', { class: 'mark mid', 'data-left': mark(p.soldAt), title: 'Typical sale ' + fit(p.soldAt) }),
       h('i', { class: 'mark you', 'data-left': mark(o.livePrice), title: 'You ' + fit(o.livePrice) })),
+    h('div', { class: 'band-key' },
+      h('span', {}, h('i', { class: 'low' }), 'Cheapest'), h('span', {}, h('i', { class: 'range' }), 'Most sales'),
+      h('span', {}, h('i', { class: 'mid' }), 'Typical'), h('span', {}, h('i', { class: 'you' }), 'You')),
     h('dl', { class: 'band-facts' },
-      h('dt', {}, 'Cheapest listed'), h('dd', {}, fit(p.low)),
+      h('dt', {}, 'Cheapest listed now'), h('dd', {}, fit(p.low)),
       h('dt', {}, 'Most sales between'), h('dd', {}, `${fit(p.from)} to ${fit(p.to)}`),
-      h('dt', {}, 'Sold at, middle'), h('dd', {}, fit(p.soldAt)),
-      h('dt', {}, 'Average sale'), h('dd', {}, fit(p.average)),
-      h('dt', {}, 'Best seller'), h('dd', {}, p.topLink ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': p.topLink }, `${p.topSeller} at ${fit(p.topPrice)}, ${plural(p.topSales, 'sale')}`) : p.topSeller)),
+      h('dt', {}, 'Typical sale price'), h('dd', {}, fit(p.soldAt)),
+      h('dt', {}, 'Average sale price'), h('dd', {}, fit(p.average)),
+      h('dt', {}, 'Sold the most'), h('dd', {}, p.topLink ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': p.topLink }, `${p.topSeller} at ${fit(p.topPrice)}, ${plural(p.topSales, 'sale')}`) : p.topSeller)),
     h('p', { class: 'insight ' + (p.verdict || '') }, p.advice),
     p.suggest && Math.abs(p.suggest - o.livePrice) > 0.00001 && o.listed
       ? h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, `Set price to ${fit(p.suggest)}`))
@@ -699,7 +702,7 @@ function marketCard(market) {
     rows.length ? h('table', {},
       h('colgroup', {}, ['item', 'sellers', 'falls', 'low', 'sold', 'top', 'yours'].map(c => h('col', { class: 'm-' + c }))),
       h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'),
-        [['Sellers moving'], ['Stock falls'], ['Cheapest now', 'The lowest price listed right now'], ['Sold at', 'The middle price of the sales seen, one vote per sale'], ['Most sales', 'The offer with the most sales seen. Click to open it on Eldorado']]
+        [['Sellers moving'], ['Stock falls'], ['Cheapest now', 'The lowest price listed right now'], ['Typical sale', 'The middle price of the sales seen, one vote per sale'], ['Most sales', 'The offer with the most sales seen. Click to open it on Eldorado']]
           .map(([t, tip]) => h('th', { scope: 'col', class: 'n', title: tip || null }, t)),
         h('th', { scope: 'col', class: 'n' }, 'You'))),
       h('tbody', {}, rows.map(r => h('tr', { 'data-key': r.key, 'data-do': r.offer ? 'openOffer' : null, 'data-offer': r.offer || null, class: r.offer ? 'link' : null },
@@ -899,9 +902,14 @@ const sales90 = () => state.orders.filter(o => o.sale && o.placed >= Date.now() 
 function financeOrders() {
   const list = sales90();
   if (financeShown === 'open') return list.filter(o => assignedUnits(o) < o.quantity);
-  if (financeShown === 'done') return list.filter(o => assignedUnits(o) >= o.quantity);
+  if (financeShown === 'people') return [];
   return list;
 }
+
+// Orders carry their offer id; older ones fall back to the title, so the finance rows can show the item's picture.
+const offerFor = o => state.offers.find(x => x.id === o.offer) || state.offers.find(x => x.title === o.title) || null;
+const orderPicture = o => { const offer = offerFor(o); return offer ? picture(offer, 'thumb') : h('span', { class: 'thumb none' }); };
+const unitsOf = (o, person) => ((ledgerOrder(o.id) || {}).shares || []).filter(s => s.person === person).reduce((a, s) => a + s.units, 0);
 
 // The ledger's "changed" stamp each draft started from; the server refuses a save if another PC saved since.
 const draftSeen = {};
@@ -934,27 +942,62 @@ function sharesCell(o) {
     left > 0 ? h('span', { class: 'pill warn' }, `${left} left`) : null);
 }
 
+// One click gives every unit still unassigned to that person and saves; Split opens the panel for anything finer.
+function assignCell(o) {
+  const l = ledgerOrder(o.id);
+  const left = o.quantity - assignedUnits(o);
+  return h('div', { class: 'give' },
+    l && l.shares.length ? l.shares.map(s => h('span', { class: 'pill' }, `${personName(s.person)} ${s.units}`)) : null,
+    people(false).map(p => h('button', {
+      type: 'button', class: 'chip', 'data-do': 'quickAssign', 'data-order': o.id, 'data-person': p.id,
+      title: `Give ${left === o.quantity ? 'all' : 'the other'} ${plural(left, 'unit')} to ${p.name} and save`,
+    }, l && l.shares.length ? `Rest to ${p.name}` : p.name)),
+    h('button', { type: 'button', class: 'chip quiet', 'data-do': 'pickFinOrder', 'data-order': o.id }, 'Split'));
+}
+
+// Per person: one column each, so a wrong assignment is visible at a glance and one click away from a fix.
+function personColumn(p, pickOrder) {
+  const rows = sales90().map(o => ({ o, units: unitsOf(o, p.id) })).filter(r => r.units > 0).sort((a, b) => b.o.placed - a.o.placed);
+  const money = rows.reduce((a, r) => { const l = ledgerOrder(r.o.id); return a + (l ? l.net * r.units / Math.max(1, l.quantity) : 0); }, 0);
+  return h('section', { class: 'card person-col', 'data-key': 'c' + p.id },
+    h('div', { class: 'head' },
+      h('span', { class: 'avatar', 'aria-hidden': 'true' }, p.name.slice(0, 1).toUpperCase()),
+      h('span', { class: 'who' }, h('b', {}, p.name), h('small', {}, `${plural(rows.length, 'order')}, ${dollars(money)} in 90 days`))),
+    rows.length
+      ? h('div', { class: 'scroll' }, rows.map(({ o, units }) => h('div', {
+        class: pickOrder && pickOrder.id === o.id ? 'job on' : 'job', 'data-do': 'pickFinOrder', 'data-order': o.id, tabindex: 0, 'data-key': o.id,
+      },
+        orderPicture(o),
+        h('span', { class: 'named' }, h('b', {}, o.title), h('small', {}, `${shortDay(o.placed)}, ${o.buyer}`)),
+        h('span', { class: 'units', title: `${units} of the order's ${o.quantity} units` }, units < o.quantity ? `${units} of ${o.quantity}` : units),
+        h('span', { class: 'fix' }, 'Fix'))))
+      : h('p', { class: 'hint' }, 'Nothing assigned in the last 90 days.'));
+}
+
 function assignPanel(o) {
   const draft = draftFor(o);
   const total = Object.values(draft).reduce((a, n) => a + (Number(n) || 0), 0);
   const l = ledgerOrder(o.id);
   const list = people(false);
   return h('aside', { 'aria-label': 'Assign order' },
-    h('div', { class: 'head' }, h('div', {}, h('h2', {}, o.title), h('small', {}, `${o.buyer}, ${dayOf(o.placed)}`))),
+    h('div', { class: 'head' }, orderPicture(o), h('div', {}, h('h2', {}, o.title), h('small', {}, `${o.buyer}, ${dayOf(o.placed)}`))),
     h('dl', { class: 'facts' },
       h('dt', {}, 'Units'), h('dd', {}, o.quantity),
       h('dt', {}, 'Order total'), h('dd', {}, o.total),
       l ? [h('dt', {}, 'After Eldorado fee'), h('dd', {}, dollars(l.net), ' ', h('small', { class: 'quiet' }, l.netExact ? 'exact' : 'estimate until it clears'))] : null),
     list.length ? [
       h('h3', { class: 'sub' }, 'Whose units are these?'),
-      h('div', { class: 'quickgive' }, list.map(p => h('button', { type: 'button', class: 'tool', 'data-do': 'giveAll', 'data-value': p.id }, `All to ${p.name}`))),
-      h('div', { class: 'shares' }, list.map(p => h('label', { class: 'share-row', 'data-key': 's' + p.id },
-        h('span', {}, p.name),
-        h('div', { class: 'quick' },
-          h('button', { type: 'button', tabindex: -1, 'data-do': 'shareStep', 'data-value': p.id, 'data-dir': -1, 'aria-label': p.name + ' fewer' }, minus()),
-          h('input', { 'data-fin': 'units', 'data-person': p.id, value: draft[p.id] || '', placeholder: '0', inputmode: 'numeric', autocomplete: 'off' }),
-          h('button', { type: 'button', tabindex: -1, 'data-do': 'shareStep', 'data-value': p.id, 'data-dir': 1, 'aria-label': p.name + ' more' }, plus())),
-        l && l.quantity ? h('small', { class: 'quiet' }, dollars(l.net * (Number(draft[p.id]) || 0) / l.quantity)) : null))),
+      h('div', { class: 'shares' }, list.map(p => h('div', { class: 'share-row', 'data-key': 's' + p.id },
+        h('div', { class: 'share-head' }, h('b', {}, p.name),
+          l && l.quantity ? h('small', { class: 'quiet' }, dollars(l.net * (Number(draft[p.id]) || 0) / l.quantity)) : null),
+        h('div', { class: 'share-ctl' },
+          h('div', { class: 'quick' },
+            h('button', { type: 'button', tabindex: -1, 'data-do': 'shareStep', 'data-value': p.id, 'data-dir': -1, 'aria-label': p.name + ' fewer' }, minus()),
+            h('input', { 'data-fin': 'units', 'data-person': p.id, value: draft[p.id] || '', placeholder: '0', inputmode: 'numeric', autocomplete: 'off', 'aria-label': p.name + ' units' }),
+            h('button', { type: 'button', tabindex: -1, 'data-do': 'shareStep', 'data-value': p.id, 'data-dir': 1, 'aria-label': p.name + ' more' }, plus())),
+          h('button', { type: 'button', class: 'tool', 'data-do': 'giveAll', 'data-value': p.id, title: `All ${o.quantity} units to ${p.name}` }, 'All'),
+          h('button', { type: 'button', class: 'tool', 'data-do': 'giveRest', 'data-value': p.id, title: `The units nobody has yet, to ${p.name}` }, 'Rest'),
+          h('button', { type: 'button', class: 'tool', 'data-do': 'giveHalf', 'data-value': p.id, title: `Half of the order, ${Math.round(o.quantity / 2)} units, to ${p.name}` }, 'Half'))))),
       h('p', { class: total > o.quantity ? 'note bad' : 'note' }, total > o.quantity ? `That's ${total} units, the order has ${o.quantity}.` : `${total} of ${o.quantity} units assigned`),
       h('div', { class: 'acts' },
         h('button', { type: 'button', class: 'solid', 'data-do': 'saveShares', disabled: total > o.quantity || state.finance.busy }, 'Save'),
@@ -1028,6 +1071,7 @@ function financePage() {
   const list = financeOrders();
   const open = sales90().filter(o => assignedUnits(o) < o.quantity).length;
   if (!financePick || (financePick.kind === 'person' && !people(true).some(p => p.id === financePick.id))) financePick = list[0] ? { kind: 'order', id: list[0].id } : null;
+  const byPerson = financeShown === 'people';
   const pickOrder = financePick && financePick.kind === 'order' ? state.orders.find(o => o.id === financePick.id) : null;
   const pickPerson = financePick && financePick.kind === 'person' ? people(true).find(p => p.id === financePick.id) : null;
   const owed = (ledger().summary || []).reduce((a, s) => a + Math.max(0, s.balance), 0);
@@ -1038,19 +1082,22 @@ function financePage() {
       h('div', { class: 'end' },
         h('span', { class: 'owed-all' }, h('small', {}, 'You owe in total'), dollars(owed)),
         h('button', { type: 'button', class: 'tool', 'data-do': 'exportAll' }, 'Export everyone'))),
-    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['done', 'Assigned'], ['all', 'All, 90 days']], financeShown, 'financeShown')),
+    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['people', 'Per person'], ['all', 'All, 90 days']], financeShown, 'financeShown')),
     h('div', { class: 'work' },
-      h('div', { class: 'list' }, list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders finance' },
-        h('colgroup', {}, ['placed', 'item', 'buyer', 'qty', 'total', 'whose'].map(c => h('col', { class: 'f-' + c }))),
-        h('thead', {}, h('tr', {}, ['Placed', 'Order', 'Buyer', 'Qty', 'Total', 'Whose'].map(t => h('th', { scope: 'col' }, t)))),
-        h('tbody', {}, list.map(o => h('tr', {
-          'data-key': o.id, 'data-do': 'pickFinOrder', 'data-order': o.id, tabindex: 0,
-          class: pickOrder && o.id === pickOrder.id ? 'on' : null,
-        },
-          h('td', { class: 'quiet' }, dayOf(o.placed)), h('td', {}, h('b', {}, o.title)), h('td', {}, o.buyer),
-          h('td', {}, o.quantity), h('td', {}, o.total), h('td', {}, sharesCell(o)))))))
-        : h('p', { class: 'empty' }, financeShown === 'open' ? 'All assigned.' : 'No orders here.')),
-      pickPerson ? personPanel(pickPerson) : financePick && financePick.kind === 'new' ? newPersonPanel() : pickOrder ? assignPanel(pickOrder) : null)];
+      h('div', { class: 'list' }, byPerson
+        ? (people(false).length ? h('div', { class: 'person-cols' }, people(false).map(p => personColumn(p, pickOrder))) : h('p', { class: 'empty' }, 'Add a person first.'))
+        : list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders finance' },
+          h('colgroup', {}, ['placed', 'item', 'buyer', 'qty', 'total', 'whose'].map(c => h('col', { class: 'f-' + c }))),
+          h('thead', {}, h('tr', {}, ['Placed', 'Order', 'Buyer', 'Qty', 'Total', financeShown === 'open' ? 'Give to' : 'Whose'].map(t => h('th', { scope: 'col' }, t)))),
+          h('tbody', {}, list.map(o => h('tr', {
+            'data-key': o.id, 'data-do': 'pickFinOrder', 'data-order': o.id, tabindex: 0,
+            class: pickOrder && o.id === pickOrder.id ? 'on' : null,
+          },
+            h('td', { class: 'quiet' }, dayOf(o.placed)), h('td', {}, h('div', { class: 'it' }, orderPicture(o), h('b', {}, o.title))), h('td', {}, o.buyer),
+            h('td', {}, o.quantity), h('td', {}, o.total), h('td', {}, financeShown === 'open' ? assignCell(o) : sharesCell(o)))))))
+          : h('p', { class: 'empty' }, financeShown === 'open' ? 'All assigned.' : 'No orders here.')),
+      pickPerson ? personPanel(pickPerson) : financePick && financePick.kind === 'new' ? newPersonPanel() : pickOrder ? assignPanel(pickOrder)
+        : byPerson ? h('aside', { 'aria-label': 'Fix an assignment' }, h('p', { class: 'insight' }, 'Click an order to change whose units it is.')) : null)];
 }
 
 // ---------- drawing ----------
@@ -1156,6 +1203,33 @@ const CLICKS = {
     assignDraft[o.id] = { [target.dataset.value]: o.quantity };
     draw();
   },
+  giveRest(target) {
+    const o = state.orders.find(x => x.id === financePick.id);
+    if (!o) return;
+    const draft = draftFor(o);
+    const left = o.quantity - Object.values(draft).reduce((a, n) => a + (Number(n) || 0), 0);
+    if (left > 0) draft[target.dataset.value] = (Number(draft[target.dataset.value]) || 0) + left;
+    draw();
+  },
+  giveHalf(target) {
+    const o = state.orders.find(x => x.id === financePick.id);
+    if (!o) return;
+    draftFor(o)[target.dataset.value] = Math.round(o.quantity / 2);
+    draw();
+  },
+  quickAssign(target) {
+    const o = state.orders.find(x => x.id === target.dataset.order);
+    if (!o) return;
+    const l = ledgerOrder(o.id);
+    const shares = {};
+    for (const s of l ? l.shares : []) shares[s.person] = (shares[s.person] || 0) + s.units;
+    const left = o.quantity - Object.values(shares).reduce((a, n) => a + n, 0);
+    if (left <= 0) return;
+    shares[target.dataset.person] = (shares[target.dataset.person] || 0) + left;
+    send('assign', { order: o.id, changed: changedOf(l), shares: Object.entries(shares).map(([person, units]) => ({ person, units })) });
+    delete assignDraft[o.id];
+    delete draftSeen[o.id];
+  },
   shareStep(target) {
     const o = state.orders.find(x => x.id === financePick.id);
     if (!o) return;
@@ -1206,7 +1280,13 @@ const CLICKS = {
     tab = 'offers';
     view = isClosed(offer) ? 'closed' : offer.stateText === 'Paused' ? 'paused' : 'live';
     selected = offer.id;
+    if (!shown().some(o => o.id === offer.id)) filter = '';   // a search typed earlier must not hide the offer asked for
     draw();
+    // Bring the row into sight and give it focus, so the arrow keys and Enter carry on from there.
+    const row = document.querySelector(`.offers [data-id="${CSS.escape(offer.id)}"]`);
+    if (!row) return;
+    row.focus({ preventScroll: true });
+    row.scrollIntoView({ block: 'center' });
   },
   notice: target => send('openUrl', { url: target.dataset.url }),
   openTop: target => send('openUrl', { url: target.dataset.url }),

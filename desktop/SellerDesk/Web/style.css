@@ -123,7 +123,7 @@ aside .line:hover:not(:disabled) { background: var(--line); }
 
 /* Tables: one soft line per offer, so a whole shop fits on one screen */
 table { width: 100%; border-collapse: separate; border-spacing: 0 2px; table-layout: fixed; }
-.c-place { width: 112px; } .c-rank { width: 96px; } .c-low { width: 76px; } .c-price { width: 142px; } .c-stock { width: 124px; } .c-sold { width: 74px; }
+.c-place { width: 112px; } .c-rank { width: 96px; } .c-low { width: 76px; } .c-price { width: 150px; } .c-stock { width: 146px; } .c-sold { width: 74px; }
 .c-due { width: 104px; } .c-buyer { width: 150px; } .c-qty { width: 60px; } .c-total { width: 108px; } .c-state { width: 96px; } .c-review { width: 86px; }
 thead th { position: sticky; top: 0; z-index: 2; text-align: left; font-size: 13px; font-weight: 600; color: var(--muted); padding: 4px 8px; background: var(--ground); white-space: nowrap; }
 tbody tr { cursor: pointer; }
@@ -155,7 +155,7 @@ small.checking { display: block; color: var(--muted); }
 .due.late { color: var(--down); }
 
 /* The edit on the row. Its steps stay out of sight until the row is in use. */
-.quick { display: grid; grid-template-columns: 26px minmax(0, 1fr) 26px; gap: 3px; height: 32px; }
+.quick { display: grid; grid-template-columns: 24px minmax(0, 1fr) 24px; gap: 3px; height: 32px; }
 .quick button { display: grid; place-items: center; background: var(--raised); border-radius: 8px; }
 .quick button:hover { background: var(--line); }
 .quick button .icon { width: 14px; height: 14px; }
@@ -303,7 +303,7 @@ aside .hint { margin: 0; }
 .hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
 
 /* Market price on the offer row and in the panel */
-.c-soldat { width: 92px; }
+.c-soldat { width: 124px; }
 .sold-at { font-weight: 600; }
 .sold-at small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); line-height: 1; }
 .sold-at.fair { color: var(--up); }
@@ -316,6 +316,13 @@ aside .hint { margin: 0; }
 .band-line .low { background: var(--muted); }
 .band-line .mid { background: var(--up); }
 .band-line .you { background: var(--signal); width: 6px; margin-left: -3px; box-shadow: 0 0 0 2px var(--field); }
+.band-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.band-key span { display: inline-flex; align-items: center; gap: 5px; }
+.band-key i { width: 4px; height: 12px; border-radius: 2px; }
+.band-key .low { background: var(--muted); }
+.band-key .range { width: 14px; height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--up) 40%, transparent); }
+.band-key .mid { background: var(--up); }
+.band-key .you { width: 6px; background: var(--signal); }
 .band-facts { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 14px; }
 .band-facts dt { color: var(--muted); }
 .band-facts dd { margin: 0; font-weight: 600; text-align: right; }
@@ -375,11 +382,37 @@ aside .sub { margin-top: 4px; }
 .payform label { display: grid; gap: 2px; font-size: 12px; color: var(--muted); }
 .payform button, .payform [data-fin=payNote] { grid-column: span 2; }
 .payform label + button { grid-column: span 2; }
-.quickgive { display: flex; flex-wrap: wrap; gap: 6px; }
-.quickgive .tool { background: var(--field); }
 .shares { display: grid; gap: 6px; }
-.share-row { display: grid; grid-template-columns: minmax(0, 1fr) 130px 64px; align-items: center; gap: 8px; }
-.share-row small { text-align: right; }
+.share-row { display: grid; gap: 5px; padding: 8px 0 2px; border-top: 1px solid var(--line); }
+.share-row:first-child { border-top: 0; padding-top: 0; }
+.share-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.share-ctl { display: grid; grid-template-columns: minmax(92px, 1fr) auto auto auto; gap: 4px; align-items: center; }
+.share-ctl .tool { height: 32px; padding: 0 9px; font-size: 13px; background: var(--field); }
+.share-ctl .tool:hover { background: var(--tint); color: var(--accent); }
+
+/* To assign: one-click chips per person */
+.give { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 6px 0; white-space: nowrap; }
+.chip { height: 28px; padding: 0 10px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--hair); font-size: 13px; font-weight: 600; border-radius: 7px; }
+.chip:hover { background: var(--tint); color: var(--accent); }
+.chip.quiet { background: none; box-shadow: none; color: var(--muted); }
+.chip.quiet:hover { color: var(--ink); background: var(--raised); }
+
+/* Per person: one column each, each scrolling on its own */
+.person-cols { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 10px; margin-left: var(--edge); overflow-x: auto; }
+.person-col { display: flex; flex-direction: column; min-height: 0; padding: 12px 8px 8px; }
+.person-col > .head { padding: 0 6px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+.person-col .who { display: grid; line-height: 1.25; min-width: 0; }
+.person-col .who small { color: var(--muted); font-size: 12px; }
+.person-col .scroll { flex: 1; min-height: 0; overflow: auto; }
+.person-col .hint { padding: 0 6px; }
+.job { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 7px 6px; border-radius: var(--r); cursor: pointer; transition: background-color .15s ease; }
+.job:hover { background: var(--raised); }
+.job.on, .job.on:hover { background: var(--tint); }
+.job:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
+.job .named b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job .units { font-weight: 600; white-space: nowrap; }
+.job .fix { font-size: 12px; font-weight: 600; color: var(--accent); visibility: hidden; }
+.job:hover .fix, .job.on .fix, .job:focus-visible .fix { visibility: visible; }
 .share-row .quick button { visibility: visible !important; }
 .note.bad { background: var(--warm); color: var(--down); }
 .mini { table-layout: auto; border-spacing: 0; font-size: 14px; }
@@ -433,12 +466,13 @@ tbody tr:hover td { background: var(--panel); }
   .top nav button { padding: 0 10px; }
   .c-low , .offers th:nth-child(4), .offers td:nth-child(4) { display: none; }
   .c-sold , .offers th:nth-child(8), .offers td:nth-child(8) { display: none; }
-  .c-price { width: 120px; } .c-stock { width: 106px; }
+  .c-price { width: 132px; } .c-stock { width: 128px; }
   .work { grid-template-columns: minmax(0, 1fr) 300px; }
   .people .person { min-width: 0; }
 }
 
 @media (max-width: 1240px) {
+  .f-buyer, .finance th:nth-child(3), .finance td:nth-child(3) { display: none; }   /* the item name needs the room more */
   .duo { grid-template-columns: minmax(0, 1fr); }
   .duo.wide { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .c-rank , .offers th:nth-child(3), .offers td:nth-child(3) { display: none; }

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.1
+
+- Finance: each order under **To assign** has a button per person that gives them every unit left and saves in one click. The split panel gives each person **All**, **Rest** and **Half** next to **−** and **+**.
+- Finance: a **Per person** view shows one column per person with their orders, so a wrong assignment is easy to spot and fix with one click.
+- Finance: order rows show the item's picture.
+- Offers: price and stock boxes fit 5 digits. **Sold at** is now **Others sold at**, and the price line in the side panel names each of its marks.
+- **Open offer** from Insights or Home now scrolls to the offer's row and selects it, even when a search was typed earlier.
+
 ## 1.6.0
 
 - The app is now called **SellerDesk**. Installing 1.6.0 moves your settings, seller key, history and market data over from Eldorado Manager and removes the old app, so there is nothing to set up again.
