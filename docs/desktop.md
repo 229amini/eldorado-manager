@@ -76,7 +76,7 @@ Each offer takes one row:
 
 Type a new price or stock on the row. SellerDesk sends it 6 seconds after your last change, or right away when you press Enter. A price change over 50% asks you to confirm.
 
-If Eldorado refuses an edit, the row turns red and keeps the value you typed. A line under it gives Eldorado's reason, with **Send again** and **Discard my change**. When the reason is the rate limit, the app sends it again every 90 seconds until it lands. After a save, the app reads your offers again and checks the new price is there. If Eldorado still shows the old one, the row turns red too.
+If Eldorado refuses an edit, the row turns red and keeps the value you typed. A line under it gives Eldorado's reason, with **Send again** and **Discard my change**. Changes go out one at a time, a couple of seconds apart, so a burst of edits doesn't trip Eldorado's rate limit. Each waiting row says where it is in line. If Eldorado still asks for fewer requests, nothing turns red: the whole line waits, a minute at first and longer if it happens again, and a note at the top says when it sends again. Esc on a row drops its change from the line. Once the line is empty, the app reads your offers again and checks each new price is there. If Eldorado still shows the old one, the row turns red too.
 
 **Others sold at** shows the typical price other sellers sold the same item for this week, with the number of sales under it. Green means your price sits inside the range most of those sales happened in. Red means you're below or above all of it. The side panel draws that range on a line, with the cheapest listing, the usual range, the typical sale and your price marked and named under it. It offers **Set price to** the typical price when there are enough sales to go on.
 
@@ -122,6 +122,8 @@ Finance needs the shared server. It records whose stock each sale was, so you ca
 1. Click **Add person** and give each person a name.
 2. Under **To assign**, each order has a button per person. One click gives that person every unit still unassigned and saves. To split an order, click **Split** or the row: each person gets a **−** and **+**, **All**, **Rest** (the units nobody has yet) and **Half**. Click **Save**.
 3. **Per person** shows one column per person with the orders they have from the last 90 days, each with its picture and units. Click an order to fix who it belongs to.
+
+Click a person's card at the top to see all of their orders in the main part of the page, with the date, units and their share of the money. Click an order there and the split opens right under it, so units given to the wrong person can be moved with **All**, **Rest**, **Half** or **−** and **+**, then **Save**. Payments and the Excel export stay in the panel on the right.
 4. Click a person's card at the top to see what they earned, what you paid, and what you still owe. Record each payment there.
 5. **Export to Excel** writes their work list for the dates you pick: each order with their units and share, then their payments and balance. **Export everyone** writes one sheet per person and a summary.
 
@@ -135,7 +137,7 @@ A share counts the money after Eldorado's fee, not the order total. Eldorado's o
 - **Worth doing** suggests moves, such as a price with room to rise or stock about to run out. SellerDesk changes nothing by itself.
 - **When buyers buy** charts sales and late cancellations by hour, in your local time.
 - **Selling on the market** estimates demand. See the next section.
-- **What your price changes did** compares place and sales before and after each change. It needs a few days of data.
+- **Did your price changes help?** takes each price change and counts the offer's orders in the days before it and the same number of days after, up to a week, with the site place before and now. **Helped** means more orders after, **Fewer orders** means fewer, and **Too soon** means fewer than three days have passed. Other things move sales too, so read it as a hint. It needs a few days of data.
 
 ### How the market estimate works
 

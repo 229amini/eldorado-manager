@@ -608,6 +608,31 @@ namespace SellerDesk
 
         private void Send(string method, string path, string body) => Call(method, path, body, true);
 
+        // The dashboard's outbox waits out a rate limit itself and shows it on the rows, so its writes try once.
+        [ThreadStatic] private static bool oneTry;
+
+        public static void OneTry(Action call)
+        {
+            oneTry = true;
+            try
+            {
+                call();
+            }
+            finally
+            {
+                oneTry = false;
+            }
+        }
+
+        /// <summary>When Eldorado's last rate limit lifts, in UTC; in the past when none holds.</summary>
+        public DateTime HeldUntil
+        {
+            get
+            {
+                lock (gate) return holdUntil;
+            }
+        }
+
         private string Call(string method, string path, string body, bool signed)
         {
             for (var attempt = 1; ; attempt++)
@@ -620,7 +645,7 @@ namespace SellerDesk
                 {
                     token = null;   // revoked or expired early: retry once with a fresh token
                 }
-                catch (MarketError error) when (method != "GET" && error.Status == 429 && attempt < WriteAttempts)
+                catch (MarketError error) when (method != "GET" && error.Status == 429 && attempt < WriteAttempts && !oneTry)
                 {
                     // Your change still matters after the limit lifts, and Pace waits that long.
                 }

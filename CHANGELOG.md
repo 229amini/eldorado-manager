@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.6.4
 
+- Offers: price and stock changes go out one at a time through a queue instead of all at once. A burst of edits no longer trips **Eldorado asked for fewer requests**. If Eldorado still asks, the queue waits and sends by itself, the rows say when, and nothing has to be sent again by hand. The offers refresh once after the queue empties instead of after every change.
+- Finance: click a person to see all of their orders in the main part of the page. Click an order there to change whose units it is, right under its row.
+- Insights: **What your price changes did** is now **Did your price changes help?**, with the orders before and after each change in one sentence and a result: Helped, No change, Fewer orders or Too soon.
 - Server: a market read that fails to reach Eldorado (a DNS hiccup or a dropped connection) goes again after 5 and then 20 seconds. Before, one such page threw away the whole half-hourly sweep, and on a flaky link no sweep finished for hours.
 
 ## 1.6.3

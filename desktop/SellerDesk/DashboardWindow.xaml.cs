@@ -25,7 +25,7 @@ namespace SellerDesk
     public partial class DashboardWindow : Window
     {
         private const int PassSeconds = 30, SlowDownSeconds = 180, SiteEvery = 5, SendDelaySeconds = 6, UndoSeconds = 20;
-        private const int RetrySeconds = 90, RecentEvery = 10, SoldDays = 30, HistoryDays = 90, TopItems = 10, MaxBulkPercent = 50;
+        private const int RecentEvery = 10, SoldDays = 30, HistoryDays = 90, TopItems = 10, MaxBulkPercent = 50;
         private const double BigChange = 0.5;
         private const string Waiting = "Sending 6 seconds after your last change. Enter sends now, Esc cancels.";
         private const string TooFine = "Eldorado takes 2 decimals, or up to 5 on a price below 0.01.";
@@ -54,7 +54,12 @@ namespace SellerDesk
         private readonly Dictionary<string, SoldOrder> orders = new Dictionary<string, SoldOrder>();
         private readonly Dictionary<string, string> orderNotes = new Dictionary<string, string>();
         private readonly HashSet<string> dismissed = new HashSet<string>();
-        private readonly HashSet<string> retrying = new HashSet<string>();
+        private readonly List<Job> outbox = new List<Job>();   // writes to Eldorado, one at a time, oldest first
+        private bool sending;
+        private volatile bool writing;   // the refresh loop holds off while the outbox has work
+        private DateTime outboxHeld;     // UTC; the outbox waits until then after Eldorado asked for fewer requests
+        private int slowDowns;           // in a row, so each wait is longer than the last
+        private const int WriteGapMs = 2500, FirstSlowDownSeconds = 60, LongestSlowDownSeconds = 300;
         private List<Notice> notices = new List<Notice>();
         private List<Sale> sales;
         private bool recentRead;
@@ -92,9 +97,11 @@ namespace SellerDesk
             };
             Closing += (_, e) =>
             {
-                if (waiting.Count == 0) return;
+                if (waiting.Count == 0 && outbox.Count == 0) return;
                 e.Cancel = true;   // a change is still on its timer, and closing now would lose it
-                problem = "A change is waiting to send. Press Enter to send it or Esc to cancel it, then close.";
+                problem = waiting.Count > 0
+                    ? "A change is waiting to send. Press Enter to send it or Esc to cancel it, then close."
+                    : $"{outbox.Count} changes are still on their way to Eldorado. Close once they're sent, or press Esc on a row to drop its change.";
                 Later();
             };
             Closed += (_, __) =>
@@ -209,6 +216,11 @@ namespace SellerDesk
                 ["best"] = Sold(salesDays).Take(TopItems).Select(ItemToWeb).ToList(),
                 ["back"] = Sold(HistoryDays).Where(i => i.Why.Length > 0).Take(TopItems).Select(ItemToWeb).ToList(),
                 ["bulkNote"] = bulkNote,
+                ["outbox"] = outbox.Count == 0 ? null : new Dictionary<string, object>
+                {
+                    ["count"] = outbox.Count,
+                    ["until"] = outboxHeld > DateTime.UtcNow ? outboxHeld.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture) : "",
+                },
                 ["bulkBusy"] = bulkBusy,
                 ["pricing"] = Insights.Pricing(rows, watched, book, DateTime.UtcNow),
                 ["customers"] = recentRead ? Customers.Build(orders.Values, DateTime.UtcNow) : null,
@@ -565,45 +577,26 @@ namespace SellerDesk
         /// Eldorado's bulk price call puts one price on every offer it matches, which would flatten a shop of
         /// different items. Sending each offer its own new price keeps them apart, at Market's pace.
         /// </summary>
-        private async void BulkPrice(string game, double percent)
+        private void BulkPrice(string game, double percent)
         {
             if (bulkBusy || percent == 0 || Math.Abs(percent) > MaxBulkPercent) return;
             var targets = rows.Where(r => r.Offer.GameId == game && r.IsListed && r.PendingPrice == null).ToList();
-            bulkBusy = true;
-            var done = 0;
+            var queued = 0;
             var same = 0;
-            OfferRow current = null;
-            var price = 0.0;
-            try
+            foreach (var row in targets)
             {
-                foreach (var row in targets)
+                var price = OfferRow.Fit(row.LivePrice * (1 + percent / 100));
+                if (price <= 0 || Math.Abs(price - row.LivePrice) < 0.0000001)
                 {
-                    bulkNote = $"Sending {done + same + 1} of {targets.Count}";
-                    Later();
-                    current = row;
-                    price = OfferRow.Fit(row.LivePrice * (1 + percent / 100));
-                    if (price <= 0 || Math.Abs(price - row.LivePrice) < 0.0000001)
-                    {
-                        same++;   // 5% off 0.04 rounds back to 0.04
-                        continue;
-                    }
-                    await Task.Run(() => market.SetPrice(row.Offer, price));
-                    Saved(row, price);
-                    row.PriceDraft = OfferRow.FormatPrice(price);
-                    done++;
+                    same++;   // 5% off 0.04 rounds back to 0.04
+                    continue;
                 }
-                bulkNote = same == 0 ? $"{done} prices changed" : $"{done} prices changed, {same} too low for this change to move";
+                row.PendingPrice = price;
+                row.PriceDraft = OfferRow.FormatPrice(price);
+                SendPrice(row, price, false);
+                queued++;
             }
-            catch (MarketError error)
-            {
-                Config.Log("bulk price: " + error.Message);
-                bulkNote = $"Stopped after {done} of {targets.Count}. {error.Message}";
-                current.PendingPrice = price;
-                current.PriceDraft = OfferRow.FormatPrice(price);
-                current.Unsaved = error.Message;
-            }
-            bulkBusy = false;
-            wake.Set();
+            bulkNote = $"{queued} prices queued, sent one at a time" + (same == 0 ? "" : $", {same} too low for this change to move");
             Later();
         }
 
@@ -636,6 +629,8 @@ namespace SellerDesk
         {
             for (var pass = 0; !closing; pass++)
             {
+                // Every read spends the same rate limit as your changes, so reading waits until they are sent.
+                while (writing && !closing) wake.WaitOne(TimeSpan.FromSeconds(5));
                 var wait = PassSeconds;
                 var site = pass % SiteEvery == 0;
                 var recentPass = pass % RecentEvery == 0;
@@ -827,7 +822,7 @@ namespace SellerDesk
         private async void Update()
         {
             if (update == null || updatePercent != null || updateStarting) return;
-            if (waiting.Count > 0)
+            if (waiting.Count > 0 || outbox.Count > 0)
             {
                 updateProblem = "A change is waiting to send. Send or cancel it first, then update.";
                 Later();
@@ -957,6 +952,8 @@ namespace SellerDesk
         {
             StopWaiting(row, "price");
             StopWaiting(row, "stock");
+            outbox.RemoveAll(job => job.Row == row && !job.Running);
+            NoteQueue();
             ResetPrice(row);
             ResetQuantity(row);
             problem = null;
@@ -981,8 +978,7 @@ namespace SellerDesk
                 row.PendingPrice = null;
                 row.Note = "Price saved. The next check confirms it.";
                 if (canUndo) OfferUndo(row, before);
-                wake.Set();
-            });
+            }, "price");
         }
 
         /// <summary>Eldorado took the price. The next read of your offers has to show it, or the row turns red.</summary>
@@ -1075,7 +1071,7 @@ namespace SellerDesk
                 row.Offer.Quantity = quantity.Value;
                 row.PendingQuantity = null;
                 row.Note = "Stock saved";
-            });
+            }, "stock");
         }
 
         private static void ResetQuantity(OfferRow row)
@@ -1100,8 +1096,7 @@ namespace SellerDesk
                 row.State = listed ? "Paused" : "Active";
                 row.Offer.State = row.State;
                 row.Note = listed ? "Offer paused" : "Offer resumed";
-                wake.Set();
-            }, keep: false);
+            }, "toggle", keep: false);
         }
 
         // ---------- closed offers ----------
@@ -1165,8 +1160,7 @@ namespace SellerDesk
                 row.Note = refused == null
                     ? "Reopened. The next check confirms it's listed."
                     : $"Price and stock saved. Resume answered: {refused} The next check shows whether it's listed.";
-                wake.Set();
-            });
+            }, "reopen");
         }
 
         // ---------- sending ----------
@@ -1196,45 +1190,116 @@ namespace SellerDesk
             waiting.Remove(key);
         }
 
-        /// <summary>
-        /// A refused edit stays on the row in red with your value, never quietly rolled back: a sale at the old
-        /// price is the cost of missing it. Keep is off for actions with nothing typed to keep, like pause.
-        /// </summary>
-        private async void Run(OfferRow row, Action call, Action saved, bool keep = true)
+        private sealed class Job
         {
-            row.Note = "Saving";
+            public OfferRow Row;
+            public string Kind;   // price, stock, toggle, reopen: a newer job of the same kind replaces a waiting one
+            public Action Call;
+            public Action Saved;
+            public bool Keep;
+            public bool Running;
+        }
+
+        /// <summary>
+        /// Puts a change in the outbox. A refused edit stays on the row in red with your value, never quietly
+        /// rolled back: a sale at the old price is the cost of missing it. Keep is off for actions with nothing
+        /// typed to keep, like pause.
+        /// </summary>
+        private void Run(OfferRow row, Action call, Action saved, string kind, bool keep = true)
+        {
+            var waiting = outbox.FirstOrDefault(job => job.Row == row && job.Kind == kind && !job.Running);
+            if (waiting != null)
+            {
+                waiting.Call = call;
+                waiting.Saved = saved;
+            }
+            else
+            {
+                outbox.Add(new Job { Row = row, Kind = kind, Call = call, Saved = saved, Keep = keep });
+            }
+            row.Unsaved = null;
+            NoteQueue();
+            Pump();
+        }
+
+        /// <summary>
+        /// Sends the outbox one change at a time with a gap between them. When Eldorado asks for fewer requests
+        /// the change stays first in line and everything waits, longer each time it happens again, instead of
+        /// each row failing on its own. The refresh runs once the outbox is empty, not after every change.
+        /// </summary>
+        private async void Pump()
+        {
+            if (sending) return;
+            sending = writing = true;
             try
             {
-                await Task.Run(call);
-                row.Unsaved = null;
-                saved();
+                while (outbox.Count > 0 && !closing)
+                {
+                    var wait = outboxHeld - DateTime.UtcNow;
+                    if (wait > TimeSpan.Zero)
+                    {
+                        NoteQueue();
+                        await Task.Delay(wait < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : wait);
+                        continue;
+                    }
+                    var job = outbox[0];
+                    job.Running = true;
+                    job.Row.Note = "Saving";
+                    Later();
+                    try
+                    {
+                        await Task.Run(() => Market.OneTry(job.Call));
+                        outbox.Remove(job);
+                        slowDowns = 0;
+                        job.Row.Unsaved = null;
+                        job.Saved();
+                    }
+                    catch (MarketError error) when (error.Status == 429)
+                    {
+                        job.Running = false;
+                        slowDowns++;
+                        var backoff = Math.Min(LongestSlowDownSeconds, FirstSlowDownSeconds << Math.Min(slowDowns - 1, 3));
+                        var told = market.HeldUntil;
+                        outboxHeld = told > DateTime.UtcNow.AddSeconds(backoff) ? told : DateTime.UtcNow.AddSeconds(backoff);
+                        Config.Log($"outbox: Eldorado asked for fewer requests, {outbox.Count} waiting until {outboxHeld.ToLocalTime():HH:mm:ss}");
+                    }
+                    catch (MarketError error)
+                    {
+                        outbox.Remove(job);
+                        Config.Log("market write: " + error.Message);
+                        var why = Plain(error.Message);
+                        job.Row.Note = why;
+                        if (job.Keep) job.Row.Unsaved = why;
+                    }
+                    NoteQueue();
+                    if (outbox.Count > 0 && outboxHeld <= DateTime.UtcNow) await Task.Delay(WriteGapMs);
+                }
             }
-            catch (MarketError error)
+            finally
             {
-                Config.Log("market write: " + error.Message);
-                var why = Plain(error.Message);
-                row.Note = why;
-                if (!keep) return;
-                row.Unsaved = why;
-                if (error.Status == 429) RetryLater(row);
+                sending = writing = false;
+                NoteQueue();
+                wake.Set();   // one read of your offers confirms everything that was sent
             }
         }
 
-        /// <summary>A rate limit lifts by itself, so the change goes again until it lands or you discard it.</summary>
-        private void RetryLater(OfferRow row)
+        /// <summary>Each waiting row says where it stands in line, or when the outbox sends again.</summary>
+        private void NoteQueue()
         {
-            var id = row.Offer.Id;
-            if (!retrying.Add(id)) return;
-            row.Unsaved += $" Trying again at {DateTime.Now.AddSeconds(RetrySeconds):HH:mm}.";
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(RetrySeconds) };
-            timer.Tick += (_, __) =>
+            var held = outboxHeld > DateTime.UtcNow;
+            for (var i = 0; i < outbox.Count; i++)
             {
-                timer.Stop();
-                retrying.Remove(id);
-                if (row.Unsaved != null && rows.Contains(row)) Retry(row);
-            };
-            timer.Start();
+                var job = outbox[i];
+                if (job.Running) continue;
+                job.Row.Note = held
+                    ? $"Waiting: Eldorado asked for fewer requests. Sends at {outboxHeld.ToLocalTime():HH:mm:ss}."
+                    : i == 0 ? "Sending next" : $"Queued, {Ordinal(i + 1)} in line";
+            }
+            Later();
         }
+
+        private static string Ordinal(int n) =>
+            n + (n % 100 >= 11 && n % 100 <= 13 ? "th" : n % 10 == 1 ? "st" : n % 10 == 2 ? "nd" : n % 10 == 3 ? "rd" : "th");
 
         /// <summary>Eldorado's stock limits, said as what to do about them.</summary>
         private static string Plain(string message)

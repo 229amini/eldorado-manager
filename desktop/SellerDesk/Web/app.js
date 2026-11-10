@@ -253,6 +253,10 @@ function topBar() {
 function attention() {
   const items = [];
   const push = (key, text, attrs, hot) => items.push(h('button', Object.assign({ type: 'button', 'data-key': key, class: hot ? 'flag hot' : 'flag' }, attrs), text));
+  const out = state.outbox;
+  if (out) items.push(h('span', { class: 'flag' + (out.until ? ' hot' : ''), 'data-key': 'outbox' }, out.until
+    ? `Eldorado asked for fewer requests. ${plural(out.count, 'change')} wait${out.count === 1 ? 's' : ''} and go at ${out.until}`
+    : `Sending ${plural(out.count, 'change')}, one at a time`));
   if (state.unsaved) push('unsaved', state.unsaved === 1 ? '1 change is not on Eldorado. Send again' : `${state.unsaved} changes are not on Eldorado. Send all again`, { 'data-do': 'retryAll' }, true);
   if (state.offline) items.push(h('span', { class: 'flag hot', 'data-key': 'offline' }, "You're offline on Eldorado, so buyers can't see your offers"));
   const open = openOrders();
@@ -779,18 +783,26 @@ function marketCard(market) {
         h('td', { class: 'n' }, r.offer ? h('span', { class: r.above ? 'above' : null, title: r.above ? 'Above the price these sales happened at' : null }, '$' + r.yours) : h('span', { class: 'pill' }, 'Not listed')))))) : h('p', { class: 'hint' }, blank));
 }
 
+// Each price change against the orders before and after it, said as a plain result.
 function changeCard(changes) {
-  const place = (before, now) => before && now ? `#${before} to #${now}` : 'Not read yet';
+  const verdict = c => c.early ? ['quiet', 'Too soon'] : c.soldAfter > c.soldBefore ? ['up', 'Helped'] : c.soldAfter < c.soldBefore ? ['warn', 'Fewer orders'] : ['', 'No change'];
+  const days = c => Math.max(1, c.daysAfter);
   return h('section', { class: 'card items changes' },
-    h('header', {}, h('h3', {}, 'What your price changes did'), h('span', {}, 'Orders in the same number of days either side')),
+    h('header', {}, h('h3', {}, 'Did your price changes help?'), h('span', {}, 'Orders before and after each change')),
+    h('p', { class: 'hint' }, 'Each row counts an offer’s orders in the days before a price change and the same number of days after it, up to a week. Other things move sales too, so take it as a hint.'),
     changes.length ? h('table', {},
-      h('colgroup', {}, ['item', 'day', 'price', 'place', 'orders'].map(c => h('col', { class: 'p-' + c }))),
-      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'), ['Day', 'Price', 'Place', 'Orders'].map(t => h('th', { scope: 'col', class: 'n' }, t)))),
-      h('tbody', {}, changes.map(c => h('tr', { 'data-key': c.key, 'data-do': 'openOffer', 'data-offer': c.offer, class: 'link' },
-        h('td', {}, h('b', {}, c.title)), h('td', { class: 'n quiet' }, c.day),
-        h('td', { class: 'n' }, triangle(c.up), `${c.from} to ${c.to}`),
-        h('td', { class: 'n' }, place(c.placeBefore, c.placeNow)),
-        h('td', { class: 'n' }, c.early ? h('span', { class: 'quiet' }, 'Too soon') : `${c.soldBefore} to ${c.soldAfter}`))))) : h('p', { class: 'hint' }, 'A daily record of each offer is kept from now on. Change a price and its effect shows up here after a few days.'));
+      h('colgroup', {}, ['item', 'price', 'orders', 'place', 'verdict'].map(c => h('col', { class: 'p-' + c }))),
+      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'), ['Price change', 'Orders', 'Site place', 'Result'].map(t => h('th', { scope: 'col' }, t)))),
+      h('tbody', {}, changes.map(c => {
+        const [tone, word] = verdict(c);
+        return h('tr', { 'data-key': c.key, 'data-do': 'openOffer', 'data-offer': c.offer, class: 'link' },
+          h('td', {}, h('b', {}, c.title)),
+          h('td', {}, h('span', { class: 'change' }, triangle(c.up), `${c.from} → ${c.to}`), h('small', { class: 'quiet' }, `on ${c.day}`)),
+          h('td', {}, c.early ? h('span', { class: 'quiet' }, `Only ${plural(c.daysAfter, 'day')} since`)
+            : h('span', {}, `${plural(c.soldBefore, 'order')} in the ${plural(days(c), 'day')} before, ${c.soldAfter} after`)),
+          h('td', { class: 'quiet' }, c.placeBefore && c.placeNow ? `#${c.placeBefore} → #${c.placeNow}` : 'Not read yet'),
+          h('td', {}, h('span', { class: ('pill ' + tone).trim() }, word)));
+      }))) : h('p', { class: 'hint' }, 'A daily record of each offer is kept from now on. Change a price and its result shows up here after a few days.'));
 }
 
 function insightsPage() {
@@ -950,6 +962,7 @@ function customersPage() {
 
 let financeShown = 'open';     // open: still has unassigned units
 let financePick = null;        // { kind: 'order' | 'person' | 'new', id }
+let financeFix = null;         // with a person picked: the order of theirs opened under its row to change
 const assignDraft = {};        // orderId -> { personId: units }
 const finDraft = { name: '', note: '', amount: '', date: '', payNote: '', from: '', until: '', editName: null, editNote: null, editSeen: 0 };
 
@@ -971,6 +984,15 @@ function financeOrders() {
 // Orders carry their offer id; older ones fall back to the title, so the finance rows can show the item's picture.
 const offerFor = o => state.offers.find(x => x.id === o.offer) || state.offers.find(x => x.title === o.title) || null;
 const orderPicture = o => { const offer = offerFor(o); return offer ? picture(offer, 'thumb') : h('span', { class: 'thumb none' }); };
+// A ledger order that has left the 90-day order list still opens, from what the ledger kept of it.
+function orderById(id) {
+  const o = state.orders.find(x => x.id === id);
+  if (o) return o;
+  const l = ledgerOrder(id);
+  return l ? { id, title: l.title, quantity: l.quantity, placed: Date.parse(l.placed), buyer: l.buyer || '', total: dollars(l.net), offer: l.offer || '' } : null;
+}
+const fixOrderId = () => financePick && financePick.kind === 'person' ? financeFix : financePick && financePick.kind === 'order' ? financePick.id : null;
+const fixOrder = () => { const id = fixOrderId(); return id ? orderById(id) : null; };
 const unitsOf = (o, person) => ((ledgerOrder(o.id) || {}).shares || []).filter(s => s.person === person).reduce((a, s) => a + s.units, 0);
 
 // The ledger's "changed" stamp each draft started from; the server refuses a save if another PC saved since.
@@ -1037,17 +1059,24 @@ function personColumn(p, pickOrder) {
 }
 
 function assignPanel(o) {
-  const draft = draftFor(o);
-  const total = Object.values(draft).reduce((a, n) => a + (Number(n) || 0), 0);
   const l = ledgerOrder(o.id);
-  const list = people(false);
   return h('aside', { 'aria-label': 'Assign order' },
     h('div', { class: 'head' }, orderPicture(o), h('div', {}, h('h2', {}, o.title), h('small', {}, `${o.buyer}, ${dayOf(o.placed)}`))),
     h('dl', { class: 'facts' },
       h('dt', {}, 'Units'), h('dd', {}, o.quantity),
       h('dt', {}, 'Order total'), h('dd', {}, o.total),
       l ? [h('dt', {}, 'After Eldorado fee'), h('dd', {}, dollars(l.net), ' ', h('small', { class: 'quiet' }, l.netExact ? 'exact' : 'estimate until it clears'))] : null),
-    list.length ? [
+    shareEditor(o),
+    h('p', { class: 'note', role: 'status' }, state.finance.note));
+}
+
+// Whose units an order's are: a row per person with − + and All, Rest, Half, then Save.
+function shareEditor(o) {
+  const draft = draftFor(o);
+  const total = Object.values(draft).reduce((a, n) => a + (Number(n) || 0), 0);
+  const l = ledgerOrder(o.id);
+  const list = people(false);
+  return list.length ? [
       h('h3', { class: 'sub' }, 'Whose units are these?'),
       h('div', { class: 'shares' }, list.map(p => h('div', { class: 'share-row', 'data-key': 's' + p.id },
         h('div', { class: 'share-head' }, h('b', {}, p.name),
@@ -1064,15 +1093,43 @@ function assignPanel(o) {
       h('div', { class: 'acts' },
         h('button', { type: 'button', class: 'solid', 'data-do': 'saveShares', disabled: total > o.quantity || state.finance.busy }, 'Save'),
         l ? h('button', { type: 'button', class: 'line', 'data-do': 'clearShares' }, 'Unassign') : null),
-    ] : h('p', { class: 'insight' }, 'Add a person first.'),
-    h('p', { class: 'note', role: 'status' }, state.finance.note));
+    ] : h('p', { class: 'insight' }, 'Add a person first.');
+}
+
+// A person's work, newest first, in the wide part of the page. Clicking a row opens the split under it,
+// so a unit given to the wrong person moves without leaving the list.
+function personList(p) {
+  const l = ledger();
+  const rows = Object.entries(l.orders).map(([id, o]) => ({ id, o, units: o.shares.filter(s => s.person === p.id).reduce((a, s) => a + s.units, 0) }))
+    .filter(r => r.units > 0).sort((a, b) => Date.parse(b.o.placed) - Date.parse(a.o.placed));
+  const units = rows.reduce((a, r) => a + r.units, 0);
+  const money = rows.reduce((a, r) => a + r.o.net * r.units / Math.max(1, r.o.quantity), 0);
+  return h('section', { class: 'card person-list', 'data-key': 'pl' + p.id },
+    h('div', { class: 'head' },
+      h('span', { class: 'avatar', 'aria-hidden': 'true' }, p.name.slice(0, 1).toUpperCase()),
+      h('span', { class: 'who' }, h('b', {}, `${p.name}'s orders`), h('small', {}, `${plural(rows.length, 'order')}, ${plural(units, 'unit')}, ${dollars(money)} earned. Click an order to change whose units it is.`))),
+    rows.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders finance mine' },
+      h('colgroup', {}, ['placed', 'item', 'buyer', 'qty', 'total', 'whose'].map(c => h('col', { class: 'f-' + c }))),
+      h('thead', {}, h('tr', {}, ['Placed', 'Order', 'Buyer', 'Units', 'Their share', 'Shared with'].map(t => h('th', { scope: 'col' }, t)))),
+      h('tbody', {}, rows.flatMap(({ id, o, units: theirs }) => {
+        const order = orderById(id);
+        const open = financeFix === id;
+        const others = o.shares.filter(s => s.person !== p.id);
+        return [h('tr', { 'data-key': id, 'data-do': 'fixFinOrder', 'data-order': id, tabindex: 0, class: open ? 'on' : null, 'aria-expanded': String(open) },
+          h('td', { class: 'quiet' }, dayOf(Date.parse(o.placed))),
+          h('td', {}, h('div', { class: 'it' }, orderPicture(order), h('b', {}, o.title))),
+          h('td', {}, order.buyer || h('span', { class: 'quiet' }, '')),
+          h('td', {}, theirs < o.quantity ? `${theirs} of ${o.quantity}` : theirs),
+          h('td', {}, dollars(o.net * theirs / Math.max(1, o.quantity)), o.netExact ? null : h('small', { class: 'quiet', title: 'Estimate until Eldorado clears the order' }, ' est')),
+          h('td', {}, others.length ? h('div', { class: 'tags' }, others.map(s => h('span', { class: 'pill' }, `${personName(s.person)} ${s.units}`))) : h('span', { class: 'quiet' }, 'Nobody'))),
+        open ? h('tr', { class: 'fix-row', 'data-key': id + '-fix' }, h('td', { colspan: innerWidth <= 1100 ? 5 : 6 },   // style.css hides Buyer at 1100
+          h('div', { class: 'fix-box' }, shareEditor(order), h('p', { class: 'note', role: 'status' }, state.finance.note)))) : null].filter(Boolean);
+      })))) : h('p', { class: 'hint' }, 'Nothing assigned to them yet.'));
 }
 
 function personPanel(p) {
   const b = balanceOf(p.id);
   const l = ledger();
-  const theirs = Object.entries(l.orders).filter(([, o]) => o.shares.some(s => s.person === p.id))
-    .sort((a, b2) => (b2[1].placed > a[1].placed ? 1 : -1)).slice(0, 30);
   const pays = l.payments.filter(x => x.person === p.id).sort((a, b2) => (b2.date > a.date ? 1 : -1));
   const editing2 = finDraft.editName !== null;
   return h('aside', { 'aria-label': 'Person' },
@@ -1098,11 +1155,6 @@ function personPanel(p) {
     pays.length ? [h('h3', { class: 'sub' }, 'Payments'), h('table', { class: 'mini' }, h('tbody', {}, pays.map(x => h('tr', { 'data-key': x.id },
       h('td', { class: 'quiet' }, x.date), h('td', {}, x.note), h('td', { class: 'n' }, dollars(x.amount)),
       h('td', { class: 'n' }, h('button', { type: 'button', class: 'x', 'data-do': 'deletePayment', 'data-value': x.id, 'aria-label': 'Remove payment' }, cross()))))))] : null,
-    theirs.length ? [h('h3', { class: 'sub' }, 'Latest work'), h('table', { class: 'mini' }, h('tbody', {}, theirs.map(([id, o]) => {
-      const units = o.shares.filter(s => s.person === p.id).reduce((a, s) => a + s.units, 0);
-      return h('tr', { 'data-key': id },
-        h('td', { class: 'quiet' }, shortDay(Date.parse(o.placed))), h('td', {}, o.title), h('td', { class: 'n' }, `${units}/${o.quantity}`),
-        h('td', { class: 'n' }, dollars(o.net * units / Math.max(1, o.quantity)), o.netExact ? null : h('small', { class: 'quiet', title: 'Estimate until Eldorado clears the order' }, ' est'))); })))] : null,
     editing2
       ? h('div', { class: 'payform' },
         h('input', { 'data-fin': 'editName', value: finDraft.editName, 'aria-label': 'Name' }),
@@ -1144,9 +1196,9 @@ function financePage() {
       h('div', { class: 'end' },
         h('span', { class: 'owed-all' }, h('small', {}, 'You owe in total'), dollars(owed)),
         h('button', { type: 'button', class: 'tool', 'data-do': 'exportAll' }, 'Export everyone'))),
-    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['people', 'Per person'], ['all', 'All, 90 days']], financeShown, 'financeShown')),
+    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['people', 'Per person'], ['all', 'All, 90 days']], pickPerson ? null : financeShown, 'financeShown')),
     h('div', { class: 'work' },
-      h('div', { class: 'list' }, byPerson
+      h('div', { class: 'list' }, pickPerson ? personList(pickPerson) : byPerson
         ? (people(false).length ? h('div', { class: 'person-cols' }, people(false).map(p => personColumn(p, pickOrder))) : h('p', { class: 'empty' }, 'Add a person first.'))
         : list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders finance' },
           h('colgroup', {}, ['placed', 'item', 'buyer', 'qty', 'total', 'whose'].map(c => h('col', { class: 'f-' + c }))),
@@ -1258,7 +1310,12 @@ const CLICKS = {
     financePick = { kind: 'order', id: target.dataset.order };
     draw();
   },
+  fixFinOrder(target) {
+    financeFix = financeFix === target.dataset.order ? null : target.dataset.order;
+    draw();
+  },
   pickPerson(target) {
+    if (!(financePick && financePick.kind === 'person' && financePick.id === target.dataset.value)) financeFix = null;
     financePick = { kind: 'person', id: target.dataset.value };
     finDraft.editName = finDraft.editNote = null;
     finDraft.amount = finDraft.payNote = '';
@@ -1273,14 +1330,14 @@ const CLICKS = {
     finDraft.name = finDraft.note = '';
   },
   giveAll(target) {
-    const o = state.orders.find(x => x.id === financePick.id);
+    const o = fixOrder();
     if (!o) return;
     if (!(o.id in draftSeen)) draftSeen[o.id] = changedOf(ledgerOrder(o.id));
     assignDraft[o.id] = { [target.dataset.value]: o.quantity };
     draw();
   },
   giveRest(target) {
-    const o = state.orders.find(x => x.id === financePick.id);
+    const o = fixOrder();
     if (!o) return;
     const draft = draftFor(o);
     const left = o.quantity - Object.values(draft).reduce((a, n) => a + (Number(n) || 0), 0);
@@ -1288,7 +1345,7 @@ const CLICKS = {
     draw();
   },
   giveHalf(target) {
-    const o = state.orders.find(x => x.id === financePick.id);
+    const o = fixOrder();
     if (!o) return;
     draftFor(o)[target.dataset.value] = Math.round(o.quantity / 2);
     draw();
@@ -1307,14 +1364,15 @@ const CLICKS = {
     delete draftSeen[o.id];
   },
   shareStep(target) {
-    const o = state.orders.find(x => x.id === financePick.id);
+    const o = fixOrder();
     if (!o) return;
     const draft = draftFor(o);
     draft[target.dataset.value] = Math.max(0, (Number(draft[target.dataset.value]) || 0) + Number(target.dataset.dir));
     draw();
   },
   saveShares() {
-    const id = financePick.id;
+    const id = fixOrderId();
+    if (!id) return;
     const draft = assignDraft[id] || {};
     const changed = id in draftSeen ? draftSeen[id] : changedOf(ledgerOrder(id));
     send('assign', { order: id, changed, shares: Object.entries(draft).filter(([, n]) => Number(n) > 0).map(([person, units]) => ({ person, units: Number(units) })) });
@@ -1322,9 +1380,11 @@ const CLICKS = {
     delete draftSeen[id];
   },
   clearShares() {
-    send('assign', { order: financePick.id, changed: changedOf(ledgerOrder(financePick.id)), shares: [] });
-    delete assignDraft[financePick.id];
-    delete draftSeen[financePick.id];
+    const id = fixOrderId();
+    if (!id) return;
+    send('assign', { order: id, changed: changedOf(ledgerOrder(id)), shares: [] });
+    delete assignDraft[id];
+    delete draftSeen[id];
   },
   addPayment() {
     const b = balanceOf(financePick.id);
@@ -1440,7 +1500,7 @@ document.addEventListener('input', event => {
   } else if (node.dataset.fin) {
     editing = node;
     if (node.dataset.fin === 'units') {
-      draftFor(state.orders.find(x => x.id === financePick.id))[node.dataset.person] = node.value.replace(/\D/g, '');
+      draftFor(fixOrder())[node.dataset.person] = node.value.replace(/\D/g, '');
       draw();
     } else {
       finDraft[node.dataset.fin] = node.value;

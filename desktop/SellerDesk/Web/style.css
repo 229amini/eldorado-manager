@@ -307,7 +307,10 @@ aside .hint { margin: 0; }
 .seller:hover { background: var(--raised); }
 .seller small { max-width: 136px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; text-decoration: underline; }
 .above { color: var(--down); font-weight: 600; }
-.p-day { width: 76px; } .p-price { width: 150px; } .p-place { width: 130px; } .p-orders { width: 96px; }
+.p-price { width: 150px; } .p-orders { width: 34%; } .p-place { width: 110px; } .p-verdict { width: 120px; }
+.changes td small { display: block; font-size: 12px; }
+.changes .change { white-space: nowrap; }
+.changes .hint { margin: 0 0 6px; }
 .hint { margin-top: 10px; color: var(--muted); font-size: 13px; }
 
 /* Market price on the offer row and in the panel */
@@ -419,6 +422,18 @@ aside .sub { margin-top: 4px; }
 .chip.quiet:hover { color: var(--ink); background: var(--raised); }
 
 /* Per person: one column each, each scrolling on its own */
+.person-list { flex: 1; min-height: 0; display: flex; flex-direction: column; margin-left: var(--edge); padding: 12px 8px 8px; }
+.person-list > .head { display: flex; align-items: center; gap: 10px; padding: 0 8px 10px; border-bottom: 1px solid var(--line); }
+.person-list .who { display: grid; line-height: 1.3; min-width: 0; }
+.person-list .who small { color: var(--muted); font-size: 12px; }
+.person-list .scroll { flex: 1; min-height: 0; overflow: auto; }
+.person-list tbody tr[data-do] { cursor: pointer; }
+.person-list .f-qty { width: 84px; } .person-list .f-total { width: 112px; } .person-list .f-whose { width: 26%; }
+.person-list tr.fix-row td { padding: 0 8px 12px; background: color-mix(in srgb, var(--signal) 6%, transparent); }
+.person-list tr.fix-row:hover td { background: color-mix(in srgb, var(--signal) 6%, transparent); }
+.fix-box { display: grid; gap: 8px; max-width: 560px; padding: 12px 14px; border-radius: var(--r); background: var(--panel); box-shadow: inset 0 0 0 1px var(--hair); }
+.fix-box .sub { margin: 0; }
+.fix-box .acts { justify-content: flex-start; }
 .person-cols { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 10px; margin-left: var(--edge); overflow-x: auto; }
 .person-col { display: flex; flex-direction: column; min-height: 0; padding: 12px 8px 8px; }
 .person-col > .head { padding: 0 6px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
