@@ -73,7 +73,7 @@ namespace SellerDesk
         private int? updatePercent;      // downloading
         private bool updateStarting;     // the new exe is running and will close this window
         private string updateProblem = "";
-        private const int FirstUpdateCheckSeconds = 20, UpdateCheckHours = 6;
+        private const int FirstUpdateCheckSeconds = 20, UpdateCheckHours = 1;
 
         public DashboardWindow(Config config, Market market)
         {

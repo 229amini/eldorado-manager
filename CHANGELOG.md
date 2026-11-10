@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.5
+
+- Settings: a new shared server address or token now restarts an open dashboard. Before, the dashboard kept the server it started with, so Finance said it had no server until the dashboard was closed and opened again.
+- The dashboard looks for a new version every hour instead of every six.
+
 ## 1.6.4
 
 - Offers: price and stock changes go out one at a time through a queue instead of all at once. A burst of edits no longer trips **Eldorado asked for fewer requests**. If Eldorado still asks, the queue waits and sends by itself, the rows say when, and nothing has to be sent again by hand. The offers refresh once after the queue empties instead of after every change.

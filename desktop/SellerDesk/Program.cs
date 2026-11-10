@@ -58,9 +58,14 @@ namespace SellerDesk
                 var settings = new SettingsWindow(before);
                 if (settings.ShowDialog() == true && System.IO.File.Exists(Installer.InstalledExe))
                 {
-                    var sameKey = before != null && before.SellerId == settings.Result.SellerId && before.SellerSecret == settings.Result.SellerSecret;
-                    Installer.StopOthers(keepDashboard: sameKey);   // a dashboard holds the key it started with
+                    var after = settings.Result;
+                    // A dashboard holds the seller key and the shared server it started with, so a change to either restarts it.
+                    var same = before != null && before.SellerId == after.SellerId && before.SellerSecret == after.SellerSecret
+                        && before.HubUrl == after.HubUrl && before.HubToken == after.HubToken;
+                    var hadDashboard = System.Diagnostics.Process.GetProcessesByName("SellerDesk").Any(p => p.MainWindowTitle == "SellerDesk");
+                    Installer.StopOthers(keepDashboard: same);
                     Installer.StartAlarm();
+                    if (!same && hadDashboard) Installer.StartDashboard();
                 }
             }
             else if (!Installer.IsInstalledCopy)
