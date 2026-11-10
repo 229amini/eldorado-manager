@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Opening SellerDesk again while the dashboard is already running now also looks for a new version, when the last look was more than 10 minutes ago. Before, it only brought the window forward and the next look could be an hour away.
+
 ## 1.6.6
 
 - Home: **Set** in Price checks asks once more before it sends. The first click shows **Send** and **Cancel**, so one stray click no longer reprices a live offer.

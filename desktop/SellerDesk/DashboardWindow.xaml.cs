@@ -73,7 +73,10 @@ namespace SellerDesk
         private int? updatePercent;      // downloading
         private bool updateStarting;     // the new exe is running and will close this window
         private string updateProblem = "";
-        private const int FirstUpdateCheckSeconds = 20, UpdateCheckHours = 1;
+        private const int FirstUpdateCheckSeconds = 20, UpdateCheckHours = 1, RecheckOnShowMinutes = 10;
+        // Opening SellerDesk again only brings this window forward, so showing it is a cue to look again.
+        private readonly AutoResetEvent lookForUpdate = new AutoResetEvent(false);
+        private DateTime lastUpdateCheck = DateTime.MinValue;
 
         public DashboardWindow(Config config, Market market)
         {
@@ -108,6 +111,12 @@ namespace SellerDesk
             {
                 closing = true;
                 wake.Set();
+                lookForUpdate.Set();
+            };
+            Activated += (_, __) =>
+            {
+                if (lastUpdateCheck != DateTime.MinValue && DateTime.UtcNow - lastUpdateCheck > TimeSpan.FromMinutes(RecheckOnShowMinutes))
+                    lookForUpdate.Set();
             };
         }
 
@@ -795,13 +804,14 @@ namespace SellerDesk
 
         // ---------- updates ----------
 
-        /// <summary>Looks for a newer release shortly after start and then every few hours. Offline just waits for the next look.</summary>
+        /// <summary>Looks for a newer release shortly after start, then every hour and whenever the window comes forward after 10 minutes. Offline just waits for the next look.</summary>
         private void WatchUpdates()
         {
             Thread.Sleep(TimeSpan.FromSeconds(FirstUpdateCheckSeconds));
             Updater.Tidy();
             while (!closing)
             {
+                lastUpdateCheck = DateTime.UtcNow;
                 try
                 {
                     var found = Updater.Check();
@@ -815,7 +825,7 @@ namespace SellerDesk
                 {
                     Config.Log("update check: " + error.Message);
                 }
-                Thread.Sleep(TimeSpan.FromHours(UpdateCheckHours));
+                lookForUpdate.WaitOne(TimeSpan.FromHours(UpdateCheckHours));
             }
         }
 
