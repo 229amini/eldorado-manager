@@ -271,11 +271,13 @@ namespace SellerDesk
             var art = Part(raw, "mainOfferImage");
             var file = art == null ? "" : Text(art, "smallImage");
             var values = List(raw, "tradeEnvironmentValues").ToList();
+            var name = values.Count > 0 ? Text(values[values.Count - 1], "value") : Text(raw, "offerTitle");
             return new Listed
             {
                 Id = Text(raw, "id"),
                 Product = Text(raw, "standardizedProductKey"),
-                Name = values.Count > 0 ? Text(values[values.Count - 1], "value") : Text(raw, "offerTitle"),
+                Name = name,
+                Size = Bundle.Size(Text(raw, "offerTitle"), values.Count > 0 ? name : ""),   // without values the name is the title
                 Kind = values.Count > 1 ? Text(values[0], "value") : "",
                 Picture = file.Length == 0 ? "" : Pictures + Uri.EscapeDataString(file),
                 Seller = user == null ? "" : Text(user, "username"),

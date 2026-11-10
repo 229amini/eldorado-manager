@@ -42,6 +42,7 @@ SWEEP_PAGES = 30
 SWEEP_GAP_SECONDS = 6
 KEEP_DAYS = 14
 BIGGEST_FALL = 1000  # beyond this it is a seller rewriting their stock, not a sale
+MOST_EACH = 200  # one-item prices kept per item, cheapest first
 SITE_EVERY = 5  # walk the site order on every 5th standings pass
 MAX_PAGES = 100  # any walk stops here (5,000 rows), so a listing that never ends can't hold the hub
 
@@ -101,6 +102,7 @@ class Listed:
     link: str = ""
     quantity: int = 0
     price: float = 0.0
+    size: int = 1  # how many of the item one unit holds, read from the title
 
 
 def new_standing() -> dict:
@@ -201,6 +203,46 @@ def span_minutes(value: str) -> float | None:
     return -total if sign else total
 
 
+_NUMBER = r"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*([km](?![a-z]))?"
+_COUNT = r"(?<![\w.,])" + _NUMBER
+_MARKED = (re.compile(_COUNT + r"\s*[x×*](?![a-z])", re.I), re.compile(r"(?<![a-z])[x×*]\s*" + _NUMBER, re.I))
+_LEADING = re.compile(r"^[^\w]*" + _COUNT + r"(?=\s|$)", re.I)
+_TRAILING = re.compile(r"(?:^|(?<=\s))" + _COUNT + r"[^\w]*$", re.I)
+_NOT_A_COUNT_AFTER = re.compile(r"\s*(?:mins?|minutes?|h|hrs?|hours?|secs?|s|days?|%|\$|usd)(?![a-z])", re.I)
+_NOT_A_COUNT_BEFORE = re.compile(r"(?:(?<![a-z])(?:tier|lvl?|level|rank|mk|no|t|v)|#)\s*$", re.I)
+BIGGEST_BUNDLE = 1_000_000
+
+
+def _count(match) -> int:
+    number = float(match.group(1).replace(",", ""))
+    number *= {"k": 1_000, "m": 1_000_000}.get((match.group(2) or "").lower(), 1)
+    size = int(round(number))
+    return size if 1 <= size <= BIGGEST_BUNDLE else 0
+
+
+def bundle_size(title: str, name: str = "") -> int:
+    """How many of the item one unit of an offer holds: "100x Seeds", "x500", "1000 Seeds" and "Seeds 50".
+
+    Eldorado has no field for it, so the price of one unit means nothing until it is divided by this.
+    The item's own name is taken out first, so a digit in it is not read as a count, and a number
+    followed by a time ("Trade in 8 min") or led by a level word ("Tier 3") is not one either.
+    """
+    text = title or ""
+    if name:
+        text = re.sub(re.escape(name), " ", text, flags=re.I)
+    text = text.strip()
+    for pattern in _MARKED:
+        for match in pattern.finditer(text):
+            if _count(match):
+                return _count(match)
+    for pattern in (_LEADING, _TRAILING):
+        match = pattern.search(text)
+        if (match and _count(match) and not _NOT_A_COUNT_AFTER.match(text, max(match.end(1), match.end(2)))
+                and not _NOT_A_COUNT_BEFORE.search(text, 0, match.start())):
+            return _count(match)
+    return 1
+
+
 def picture_of(art, size: str) -> str:
     file = text(art, size) if art else ""
     return PICTURES + urllib.parse.quote(file, safe="") if file else ""
@@ -258,10 +300,12 @@ def to_listed(row: dict) -> Listed:
     alias = text(raw, "gameSeoAlias")
     art = part(raw, "mainOfferImage")
     values = items(raw, "tradeEnvironmentValues")
+    name = text(values[-1], "value") if values else text(raw, "offerTitle")
     return Listed(
         id=text(raw, "id"),
         product=text(raw, "standardizedProductKey"),
-        name=text(values[-1], "value") if values else text(raw, "offerTitle"),
+        name=name,
+        size=bundle_size(text(raw, "offerTitle"), name if values else ""),  # without values the name is the title
         kind=text(values[0], "value") if len(values) > 1 else "",
         picture=picture_of(art, "smallImage"),
         seller=text(user, "username") if user else "",
@@ -557,6 +601,14 @@ def take(watched: dict, stock: dict, listed: list[Listed], mine: set, now: datet
         item["Sellers"] = len(group)
         item["Low"] = prices[0]
         item["Typical"] = prices[len(prices) // 2]
+        # Low and Typical mix bundle sizes; Each is one item's price per listing, which compares.
+        item["Each"] = sorted(round(line.price / line.size, 8) for line in group)[:MOST_EACH]
+        # Falls from before 1.6.2 have no size; one whose offer is still listed takes the size its title has now.
+        sizes = {line.id: line.size for line in group}
+        for counted in item["Days"].values():
+            for fall in counted.get("Falls", []):
+                if not fall.get("Size") and fall.get("Offer") in sizes:
+                    fall["Size"] = sizes[fall["Offer"]]
         for offer in group:
             if offer.id in mine or offer.id not in stock:
                 continue
@@ -569,7 +621,7 @@ def take(watched: dict, stock: dict, listed: list[Listed], mine: set, now: datet
             if offer.id not in counted["Offers"]:
                 counted["Offers"].append(offer.id)
             counted["Falls"].append({"Offer": offer.id, "Seller": offer.seller, "Link": offer.link,
-                                     "Price": offer.price, "Units": fell})
+                                     "Price": offer.price, "Units": fell, "Size": offer.size})
     # Only this sweep's offers are compared next time; keeping every id ever seen grew without end.
     stock.clear()
     for offer in listed:

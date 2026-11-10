@@ -27,6 +27,7 @@ namespace SellerDesk
         public Dictionary<string, List<Mark>> Offers = new Dictionary<string, List<Mark>>();
         public int[] Online = new int[24];    // passes that found your offers visible, by local hour
         public int[] Offline = new int[24];   // passes that found Eldorado had you offline
+        public Dictionary<string, int> Bundles = new Dictionary<string, int>();   // offer id -> items per unit, where the title reads wrong
 
         /// <summary>Keeps the day's last reading of each listed offer. Only the price at the end of a day counts as a change.</summary>
         public void Note(IEnumerable<OfferRow> rows, DateTime now)
@@ -118,7 +119,7 @@ namespace SellerDesk
                 ["hours"] = hours,
                 ["moves"] = Moves(rows, sold, late, book),
                 ["changes"] = Changes(book, all.Where(o => o.IsSale).ToList(), now),
-                ["market"] = MarketToWeb(rows, watched, now),
+                ["market"] = MarketToWeb(rows, watched, book, now),
             };
         }
 
@@ -232,7 +233,22 @@ namespace SellerDesk
             return changes.OrderByDescending(c => (string)c["sort"], StringComparer.Ordinal).Take(MostChanges).ToList();
         }
 
-        private static Dictionary<string, object> MarketToWeb(List<OfferRow> rows, Watched watched, DateTime now)
+        /// <summary>How many of the item one unit of your offer holds, and whether you set it or the title said so.</summary>
+        public static int SizeOf(OfferRow row, Logbook book, out bool yours)
+        {
+            yours = book != null && book.Bundles.TryGetValue(row.Offer.Id, out var set) && set > 0;
+            if (yours) return book.Bundles[row.Offer.Id];
+            var values = row.Offer.EnvironmentValues;
+            return Bundle.Size(row.Offer.Title, values.Length > 0 ? values.Last() : "");
+        }
+
+        // Falls from before 1.6.2 have no size, so their price can't be split into items; they are left out.
+        private static List<Fall> Sized(IEnumerable<Fall> falls) => falls.Where(f => f.Size > 0).ToList();
+
+        // A fall's price as the price of `size` items.
+        private static double Scaled(Fall fall, int size) => fall.Price / fall.Size * size;
+
+        private static Dictionary<string, object> MarketToWeb(List<OfferRow> rows, Watched watched, Logbook book, DateTime now)
         {
             if (watched == null || watched.Sweeps == 0)
                 return new Dictionary<string, object> { ["sweeps"] = 0, ["rows"] = new List<object>() };
@@ -244,7 +260,10 @@ namespace SellerDesk
             {
                 var days = pair.Value.Days.Where(d => string.CompareOrdinal(d.Key, since) >= 0).Select(d => d.Value).ToList();
                 mine.TryGetValue(Match(pair.Value.Kind, pair.Value.Name), out var row);
-                var falls = days.SelectMany(d => d.Falls ?? new List<Fall>()).ToList();
+                var falls = Sized(days.SelectMany(d => d.Falls ?? new List<Fall>()));
+                // Priced for your offer's size when you sell it, otherwise for the size most sales came in.
+                var size = row != null ? SizeOf(row, book, out _)
+                    : falls.Count == 0 ? 1 : falls.GroupBy(f => f.Size).OrderByDescending(g => g.Count()).First().Key;
                 return new
                 {
                     Item = pair.Value,
@@ -253,7 +272,9 @@ namespace SellerDesk
                     Movers = days.SelectMany(d => d.Offers).Distinct().Count(),
                     Units = days.Sum(d => d.Units),
                     Row = row,
-                    SoldAt = SoldAt(falls),
+                    Size = size,
+                    Low = pair.Value.Each != null && pair.Value.Each.Count > 0 ? pair.Value.Each[0] * size : (double?)null,
+                    SoldAt = SoldAt(falls, size),
                     Top = falls.GroupBy(f => f.Offer).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Sum(f => f.Units))
                         .Select(g => new { Last = g.Last(), Sales = g.Count() }).FirstOrDefault(),
                 };
@@ -273,10 +294,11 @@ namespace SellerDesk
                     ["picture"] = x.Item.Picture,
                     ["drops"] = x.Drops,
                     ["movers"] = x.Movers,
-                    ["low"] = OfferRow.FormatPrice(x.Item.Low),
+                    ["low"] = x.Low == null ? "" : OfferRow.FormatPrice(x.Low.Value),
+                    ["per"] = x.Size,
                     ["soldAt"] = x.SoldAt == null ? "" : OfferRow.FormatPrice(x.SoldAt.Value),
                     ["topSeller"] = x.Top?.Last.Seller ?? "",
-                    ["topPrice"] = x.Top == null ? "" : OfferRow.FormatPrice(x.Top.Last.Price),
+                    ["topPrice"] = x.Top == null ? "" : OfferRow.FormatPrice(Scaled(x.Top.Last, x.Size)),
                     ["topSales"] = x.Top?.Sales ?? 0,
                     ["topLink"] = x.Top?.Last.Link ?? "",
                     ["offer"] = x.Row?.Offer.Id ?? "",
@@ -290,10 +312,10 @@ namespace SellerDesk
         /// The middle price of the sales seen, one vote per sale. Listed prices mislead: a few sellers park
         /// offers far above the market and never sell them, which drags a middle of listed prices up.
         /// </summary>
-        private static double? SoldAt(List<Fall> falls)
+        private static double? SoldAt(List<Fall> falls, int size)
         {
             if (falls.Count == 0) return null;
-            var prices = falls.Select(f => f.Price).OrderBy(p => p).ToList();
+            var prices = falls.Select(f => Scaled(f, size)).OrderBy(p => p).ToList();
             return prices[prices.Count / 2];
         }
 
@@ -302,7 +324,7 @@ namespace SellerDesk
         /// last week: the price range most of them happened in, their middle, the unit-weighted average, and the
         /// offer that sold most. The cheapest listing alone pushes a seller to give margin away for nothing.
         /// </summary>
-        public static Dictionary<string, object> Pricing(List<OfferRow> rows, Watched watched, DateTime now)
+        public static Dictionary<string, object> Pricing(List<OfferRow> rows, Watched watched, Logbook book, DateTime now)
         {
             var result = new Dictionary<string, object>();
             if (watched == null || watched.Sweeps == 0) return result;
@@ -311,25 +333,30 @@ namespace SellerDesk
             foreach (var row in rows.Where(r => !r.Offer.IsCurrency && r.Offer.Currency == "USD" && r.Offer.EnvironmentValues.Length > 0))
             {
                 if (!items.TryGetValue(Match(row.Offer.EnvironmentValues.First(), row.Offer.EnvironmentValues.Last()), out var item)) continue;
-                var falls = item.Days.Where(d => string.CompareOrdinal(d.Key, since) >= 0).SelectMany(d => d.Value.Falls ?? new List<Fall>()).ToList();
-                var entry = new Dictionary<string, object> { ["low"] = item.Low, ["sales"] = falls.Count };
+                var falls = Sized(item.Days.Where(d => string.CompareOrdinal(d.Key, since) >= 0).SelectMany(d => d.Value.Falls ?? new List<Fall>()));
+                // Every price below is for as many items as one unit of your offer holds, so it compares with yours.
+                var size = SizeOf(row, book, out var yours);
+                var listed = (item.Each ?? new List<double>()).Select(p => p * size).ToList();
+                var entry = new Dictionary<string, object> { ["sales"] = falls.Count, ["size"] = size, ["sizeYours"] = yours, ["listed"] = listed };
+                if (listed.Count > 0) entry["low"] = listed[0];
                 result[row.Offer.Id] = entry;
                 if (falls.Count == 0) continue;
-                var prices = falls.Select(f => f.Price).OrderBy(p => p).ToList();
+                var prices = falls.Select(f => Scaled(f, size)).OrderBy(p => p).ToList();
                 var from = prices[prices.Count / 4];
                 var to = prices[Math.Min(prices.Count - 1, prices.Count * 3 / 4)];
                 var middle = prices[prices.Count / 2];
-                var average = falls.Sum(f => f.Price * f.Units) / Math.Max(1, falls.Sum(f => f.Units));
-                var top = falls.GroupBy(f => f.Offer).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Sum(f => f.Units)).First();
+                var sold = falls.Sum(f => (double)f.Units * f.Size);
+                var average = falls.Sum(f => Scaled(f, size) * f.Units * f.Size) / Math.Max(1, sold);
+                var top = falls.GroupBy(f => f.Offer).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Sum(f => (double)f.Units * f.Size)).First();
                 entry["soldAt"] = middle;
-                entry["average"] = Math.Round(average, 4);
+                entry["average"] = Math.Round(average, 6);
                 entry["from"] = from;
                 entry["to"] = to;
-                entry["topPrice"] = top.Last().Price;
+                entry["topPrice"] = Scaled(top.Last(), size);
                 entry["topSeller"] = top.Last().Seller;
                 entry["topSales"] = top.Count();
                 entry["topLink"] = top.Last().Link;
-                entry["units"] = falls.Sum(f => f.Units);
+                entry["units"] = (long)sold;
                 Advise(entry, row.LivePrice, from, middle, to, falls.Count);
             }
             return result;

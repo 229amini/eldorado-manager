@@ -89,7 +89,7 @@
       market: {
         sweeps: 34, since: '6 Nov', early: true, seen: 1500, total: 55383,
         rows: [
-          { key: 'a', name: 'Mechanical Components', kind: 'Materials', picture: art('#7a4dff', '#1a1f5e'), drops: 9, movers: 6, low: '0.03', soldAt: '0.05', topSeller: 'marko_77', topPrice: '0.04', topSales: 4, topLink: '/arc-raiders-items/oi/a1', offer: '', yours: '', above: false },
+          { key: 'a', name: 'Mechanical Components', kind: 'Materials', per: 500, picture: art('#7a4dff', '#1a1f5e'), drops: 9, movers: 6, low: '0.03', soldAt: '0.05', topSeller: 'marko_77', topPrice: '0.04', topSales: 4, topLink: '/arc-raiders-items/oi/a1', offer: '', yours: '', above: false },
           { key: 'b', name: 'Herbal Bandage', kind: 'Quick Use', picture: art('#00b7c3', '#0b3d91'), drops: 7, movers: 5, low: '0.05', soldAt: '0.09', topSeller: 'a_very_long_seller_name_here', topPrice: '0.08', topSales: 3, topLink: '/arc-raiders-items/oi/b1', offer: '', yours: '', above: false },
           { key: 'c', name: 'Heavy Fuze Grenade', kind: 'Quick Use', picture: art('#ffd166', '#7a4a00'), drops: 5, movers: 3, low: '0.04', soldAt: '0.06', topSeller: 'sora', topPrice: '0.05', topSales: 2, topLink: '/arc-raiders-items/oi/c1', offer: '7', yours: '0.11', above: true },
           { key: 'd', name: 'Shield Recharger', picture: '', drops: 3, movers: 2, low: '0.12', soldAt: '', topSeller: '', topPrice: '', topSales: 0, topLink: '', offer: '', yours: '', above: false },
@@ -99,9 +99,9 @@
     bulkNote: '', bulkBusy: false,
     hub: !location.search.includes('nohub'),
     pricing: {
-      1: { low: 0.01, sales: 14, soldAt: 0.06, average: 0.064, from: 0.04, to: 0.09, topPrice: 0.05, topSeller: 'QuickLoot', topSales: 6, topLink: '/x/oi/1', units: 220, verdict: 'fair', suggest: 0.06, advice: 'You’re inside the range most sales happened in, 0.04 to 0.09.' },
-      3: { low: 0.05, sales: 9, soldAt: 0.22, average: 0.21, from: 0.15, to: 0.3, topPrice: 0.2, topSeller: 'ArcDepot', topSales: 4, topLink: '/x/oi/3', units: 60, verdict: 'low', suggest: 0.22, advice: 'Most sales happened between 0.15 and 0.30, and you’re below all of that. 0.22 sits in the middle of them.' },
-      7: { low: 0.07, sales: 2, soldAt: 0.06, average: 0.06, from: 0.05, to: 0.06, topPrice: 0.05, topSeller: 'sora', topSales: 2, topLink: '/x/oi/7', units: 5, verdict: 'few', advice: 'Only 2 sales seen this week, too few to suggest a price.' },
+      1: { low: 0.01, sales: 14, soldAt: 0.06, average: 0.064, from: 0.04, to: 0.09, topPrice: 0.05, topSeller: 'QuickLoot', topSales: 6, topLink: '/x/oi/1', units: 22000, size: 100, sizeYours: false, listed: [0.01, 0.03, 0.04, 0.05, 0.05, 0.06, 0.07, 0.08, 0.09, 0.12], verdict: 'fair', suggest: 0.06, advice: 'You’re inside the range most sales happened in, 0.04 to 0.09.' },
+      3: { low: 0.05, sales: 9, soldAt: 0.22, average: 0.21, from: 0.15, to: 0.3, topPrice: 0.2, topSeller: 'ArcDepot', topSales: 4, topLink: '/x/oi/3', units: 60, size: 1, sizeYours: false, listed: [0.05, 0.12, 0.18, 0.2, 0.25], verdict: 'low', suggest: 0.22, advice: 'Most sales happened between 0.15 and 0.30, and you’re below all of that. 0.22 sits in the middle of them.' },
+      7: { low: 0.07, sales: 2, soldAt: 0.06, average: 0.06, from: 0.05, to: 0.06, topPrice: 0.05, topSeller: 'sora', topSales: 2, topLink: '/x/oi/7', units: 5, size: 50, sizeYours: true, listed: [0.07], verdict: 'few', advice: 'Only 2 sales seen this week, too few to suggest a price.' },
       5: { low: 0.31, sales: 0 },
     },
     customers: {

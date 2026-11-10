@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Web.Script.Serialization;
 
@@ -20,6 +21,7 @@ namespace SellerDesk
         public string Link = "";   // the offer's page on Eldorado, relative to the site
         public int Quantity;
         public double Price;
+        public int Size = 1;   // how many of the item one unit holds, read from the title
     }
 
     /// <summary>One fall in another seller's stock: most likely a sale, at the price the offer had then.</summary>
@@ -30,6 +32,61 @@ namespace SellerDesk
         public string Link = "";
         public double Price;
         public int Units;
+        public int Size;   // 0 on falls recorded before 1.6.2, whose price can't be split into items
+    }
+
+    /// <summary>
+    /// How many of the item one unit of an offer holds: "100x Seeds", "x500", "1000 Seeds" and "Seeds 50".
+    /// Eldorado has no field for it, so the price of one unit means nothing until it is divided by this.
+    /// The item's own name is taken out first, so a digit in it is not read as a count, and a number
+    /// followed by a time ("Trade in 8 min") or led by a level word ("Tier 3") is not one either.
+    /// Mirrors bundle_size in sellerdesk/market.py; the tests there hold the cases.
+    /// </summary>
+    public static class Bundle
+    {
+        public const int Biggest = 1000000;
+        private const RegexOptions Options = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
+        private const string Number = @"(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)\s*([km](?![a-z]))?";
+        // Not \w: .NET counts marks such as the emoji variation selector as word characters, Python does not.
+        private const string Word = @"\p{L}\p{Nd}_";
+        private const string Count = @"(?<![" + Word + @".,])" + Number;
+        private static readonly Regex[] Marked =
+        {
+            new Regex(Count + @"\s*[x×*](?![a-z])", Options),
+            new Regex(@"(?<![a-z])[x×*]\s*" + Number, Options),
+        };
+        private static readonly Regex Leading = new Regex(@"^[^" + Word + @"]*" + Count + @"(?=\s|$)", Options);
+        private static readonly Regex Trailing = new Regex(@"(?:^|(?<=\s))" + Count + @"[^" + Word + @"]*$", Options);
+        private static readonly Regex NotACountAfter = new Regex(@"\G\s*(?:mins?|minutes?|h|hrs?|hours?|secs?|s|days?|%|\$|usd)(?![a-z])", Options);
+        private static readonly Regex NotACountBefore = new Regex(@"(?:(?<![a-z])(?:tier|lvl?|level|rank|mk|no|t|v)|#)\s*$", Options);
+
+        public static int Size(string title, string name = "")
+        {
+            var text = title ?? "";
+            if (!string.IsNullOrEmpty(name)) text = Regex.Replace(text, Regex.Escape(name), " ", Options);
+            text = text.Trim();
+            foreach (var pattern in Marked)
+                foreach (Match match in pattern.Matches(text))
+                    if (Read(match) > 0) return Read(match);
+            foreach (var pattern in new[] { Leading, Trailing })
+            {
+                var match = pattern.Match(text);
+                if (!match.Success || Read(match) == 0) continue;
+                var end = match.Groups[2].Success ? match.Groups[2].Index + match.Groups[2].Length : match.Groups[1].Index + match.Groups[1].Length;
+                if (NotACountAfter.Match(text, end).Success || NotACountBefore.IsMatch(text.Substring(0, match.Index))) continue;
+                return Read(match);
+            }
+            return 1;
+        }
+
+        private static int Read(Match match)
+        {
+            if (!double.TryParse(match.Groups[1].Value.Replace(",", ""), NumberStyles.Float, CultureInfo.InvariantCulture, out var number)) return 0;
+            var unit = match.Groups[2].Value.ToLowerInvariant();
+            number *= unit == "k" ? 1000 : unit == "m" ? 1000000 : 1;
+            if (number < 0.5 || number > Biggest) return 0;
+            return (int)Math.Round(number, MidpointRounding.ToEven);
+        }
     }
 
     /// <summary>What the shop trades in. The dashboard leaves it for the market watch, which runs without the seller key.</summary>
@@ -55,6 +112,7 @@ namespace SellerDesk
         public int Sellers;
         public double Low;
         public double Typical;
+        public List<double> Each = new List<double>();   // one item's price per listing, cheapest first; Low and Typical mix bundle sizes
         public Dictionary<string, WatchedDay> Days = new Dictionary<string, WatchedDay>();
     }
 
@@ -80,6 +138,7 @@ namespace SellerDesk
         public const int SweepPages = 30;
         private const int GapMs = 6000, SweepMinutes = 30, HoldMinutes = 15, KeepDays = 14, FirstWaitSeconds = 60;
         private const int BiggestFall = 1000;   // beyond this it is a seller rewriting their stock, not a sale
+        private const int MostEach = 200;
 
         private static readonly string WatchPath = Path.Combine(Config.Home, "market.json");
         private static readonly string ShopPath = Path.Combine(Config.Home, "shop.json");
@@ -152,6 +211,11 @@ namespace SellerDesk
                 item.Sellers = group.Count();
                 item.Low = prices[0];
                 item.Typical = prices[prices.Count / 2];
+                item.Each = group.Select(l => Math.Round(l.Price / Math.Max(1, l.Size), 8)).OrderBy(p => p).Take(MostEach).ToList();
+                // Falls from before 1.6.2 have no size; one whose offer is still listed takes the size its title has now.
+                var sizes = group.GroupBy(l => l.Id).ToDictionary(g => g.Key, g => g.First().Size);
+                foreach (var fall in item.Days.Values.SelectMany(d => d.Falls ?? new List<Fall>()).Where(f => f.Size == 0))
+                    if (sizes.TryGetValue(fall.Offer, out var size)) fall.Size = size;
                 foreach (var offer in group.Where(l => !mine.Contains(l.Id)))
                 {
                     if (!stock.TryGetValue(offer.Id, out var before)) continue;
@@ -161,7 +225,7 @@ namespace SellerDesk
                     counted.Drops++;
                     counted.Units += fell;
                     if (!counted.Offers.Contains(offer.Id)) counted.Offers.Add(offer.Id);
-                    counted.Falls.Add(new Fall { Offer = offer.Id, Seller = offer.Seller, Link = offer.Link, Price = offer.Price, Units = fell });
+                    counted.Falls.Add(new Fall { Offer = offer.Id, Seller = offer.Seller, Link = offer.Link, Price = offer.Price, Units = fell, Size = offer.Size });
                 }
             }
             foreach (var offer in listed) stock[offer.Id] = offer.Quantity;

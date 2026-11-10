@@ -203,7 +203,7 @@ namespace SellerDesk
                 ["back"] = Sold(HistoryDays).Where(i => i.Why.Length > 0).Take(TopItems).Select(ItemToWeb).ToList(),
                 ["bulkNote"] = bulkNote,
                 ["bulkBusy"] = bulkBusy,
-                ["pricing"] = Insights.Pricing(rows, watched, DateTime.UtcNow),
+                ["pricing"] = Insights.Pricing(rows, watched, book, DateTime.UtcNow),
                 ["customers"] = recentRead ? Customers.Build(orders.Values, DateTime.UtcNow) : null,
                 ["hub"] = hub != null,
                 ["finance"] = FinanceToWeb(),
@@ -395,6 +395,7 @@ namespace SellerDesk
                 case "toggle": Toggle(row); break;
                 case "reopen": Reopen(row); break;
                 case "retry": Retry(row); break;
+                case "bundle": SetBundle(row, Text("text")); break;
             }
         }
 
@@ -774,6 +775,18 @@ namespace SellerDesk
             row.PendingPrice = next;
             row.Note = Waiting;
             Soon(row, "price", () => CommitPrice(row));
+        }
+
+        /// <summary>Items per unit for one offer, when its title reads wrong. Blank or the title's own number clears it.</summary>
+        private void SetBundle(OfferRow row, string text)
+        {
+            book.Bundles.Remove(row.Offer.Id);
+            var guessed = Insights.SizeOf(row, book, out _);
+            if (int.TryParse((text ?? "").Trim(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var size)
+                && size >= 1 && size <= Bundle.Biggest && size != guessed)
+                book.Bundles[row.Offer.Id] = size;
+            book.Save();
+            Later();
         }
 
         private void PriceTyped(OfferRow row, string text)

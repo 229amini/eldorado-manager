@@ -28,6 +28,7 @@ let asking = null;    // the order action waiting for its second click: 'deliver
 let extendTime = 'Minute15';
 let extendReason = 'WaitingForBuyer';
 let editing = null;   // the field being typed in, which a redraw must leave alone
+let drag = null;      // { id, price, held }: a price picked on the sales line, not sent until Save price
 let fresh = null;     // a field just focused by the pointer, whose selection the click would clear
 
 const send = (type, data) => host ? host.postMessage(Object.assign({ type }, data)) : window.sampleSend && window.sampleSend(type, data);
@@ -341,25 +342,65 @@ function soldAtCell(o) {
   return h('span', { class: 'sold-at ' + (p.verdict || ''), title: p.advice || '' }, fit(p.soldAt), h('small', {}, `${plural(p.sales, 'sale')} this week`));
 }
 
-// Under the place: the range sales happen in, with your price marked on it.
+// The sales line's ends, padded so a price can be dragged a little past the cheapest and dearest sale.
+function bandScale(o, p) {
+  const lo = Math.min(p.low ?? p.from, p.from, o.livePrice), hi = Math.max(p.to, p.topPrice, o.livePrice) || 1;
+  const pad = (hi - lo || hi) * 0.1;
+  return { lo: Math.max(0, lo - pad), hi: hi + pad };
+}
+
+// Where a new price would sit among the listings seen, leaving out the one nearest your own live price.
+function rankAt(o, p, price) {
+  const others = (p.listed || []).slice();
+  const own = others.findIndex(v => Math.abs(v - o.livePrice) <= o.livePrice * 0.005);
+  if (own >= 0) others.splice(own, 1);
+  return { place: others.filter(v => v < price - 1e-9).length + 1, of: others.length + 1 };
+}
+
+const canDrag = o => o.listed && o.kind !== 'Currency';
+
+// Under the place: the range sales happen in, with your price marked on it. Dragging the line picks a new price.
 function priceBand(o) {
   const p = priceOf(o);
   if (!p || !p.soldAt) return null;
-  const lo = Math.min(p.low, p.from, o.livePrice), hi = Math.max(p.to, p.topPrice, o.livePrice) || 1;
+  const { lo, hi } = bandScale(o, p);
   const at = v => Math.max(0, Math.min(100, (v - lo) / ((hi - lo) || 1) * 100));
   const mark = v => Math.max(1, Math.min(99, at(v)));   // a mark at either end stays inside the line
+  const picked = drag && drag.id === o.id ? drag : null;
+  const you = picked ? picked.price : o.livePrice;
+  const low = p.low ?? null;
+  const rank = picked ? rankAt(o, p, you) : null;
+  const versus = picked ? Math.round((you / p.soldAt - 1) * 100) : 0;
   return h('section', { class: 'band-card' },
     h('h3', {}, `What other sellers sold it for this week, ${plural(p.sales, 'sale')}`),
-    h('div', { class: 'band-line', role: 'img', 'aria-label': `Most sales between ${fit(p.from)} and ${fit(p.to)}, you at ${fit(o.livePrice)}` },
+    h('p', { class: 'band-size' }, 'Prices for ',
+      h('input', { class: 'size', 'data-bundle': o.id, value: String(p.size || 1), inputmode: 'numeric', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Items in one unit of your offer', title: 'How many items one unit of your offer holds. Other sellers\' prices are worked out per item and shown for this many.' }),
+      (p.size || 1) === 1 ? ' item' : ' items',
+      h('small', {}, p.sizeYours ? 'set by you' : 'from your title')),
+    h('div', {
+      class: 'band-line' + (canDrag(o) ? ' can-drag' : '') + (picked && picked.held ? ' held' : ''),
+      'data-drag': canDrag(o) ? o.id : null, 'data-lo': lo, 'data-hi': hi,
+      role: canDrag(o) ? 'slider' : 'img', tabindex: canDrag(o) ? 0 : null,
+      'aria-label': canDrag(o) ? 'Your price. Drag, or use the left and right arrow keys' : `Most sales between ${fit(p.from)} and ${fit(p.to)}, you at ${fit(o.livePrice)}`,
+      'aria-valuemin': canDrag(o) ? fit(lo) : null, 'aria-valuemax': canDrag(o) ? fit(hi) : null, 'aria-valuenow': canDrag(o) ? fit(you) : null,
+    },
       h('i', { class: 'range', 'data-left': at(p.from), 'data-width': Math.max(2, at(p.to) - at(p.from)) }),
-      h('i', { class: 'mark low', 'data-left': mark(p.low), title: 'Cheapest listed ' + fit(p.low) }),
+      low === null ? null : h('i', { class: 'mark low', 'data-left': mark(low), title: 'Cheapest listed ' + fit(low) }),
       h('i', { class: 'mark mid', 'data-left': mark(p.soldAt), title: 'Typical sale ' + fit(p.soldAt) }),
-      h('i', { class: 'mark you', 'data-left': mark(o.livePrice), title: 'You ' + fit(o.livePrice) })),
+      picked ? h('i', { class: 'mark was', 'data-left': mark(o.livePrice), title: 'Your live price ' + fit(o.livePrice) }) : null,
+      h('i', { class: 'mark you', 'data-left': mark(you), title: 'You ' + fit(you) })),
     h('div', { class: 'band-key' },
-      h('span', {}, h('i', { class: 'low' }), 'Cheapest'), h('span', {}, h('i', { class: 'range' }), 'Most sales'),
-      h('span', {}, h('i', { class: 'mid' }), 'Typical'), h('span', {}, h('i', { class: 'you' }), 'You')),
+      low === null ? null : h('span', {}, h('i', { class: 'low' }), 'Cheapest'), h('span', {}, h('i', { class: 'range' }), 'Most sales'),
+      h('span', {}, h('i', { class: 'mid' }), 'Typical'), h('span', {}, h('i', { class: 'you' }), canDrag(o) && !picked ? 'You, drag to change' : 'You')),
+    picked ? h('div', { class: 'band-pick', role: 'status' },
+      h('span', { class: 'quiet' }, 'New price'), h('b', {}, fit(you)),
+      h('span', {}, `#${rank.place} of ${rank.of} listed`),
+      h('span', { class: 'quiet' }, versus === 0 ? 'at the typical sale' : `${Math.abs(versus)}% ${versus > 0 ? 'above' : 'below'} the typical sale`),
+      h('div', { class: 'acts' },
+        h('button', { type: 'button', class: 'solid', 'data-do': 'dragSave', disabled: Math.abs(you - o.livePrice) < 0.00001 }, 'Save price'),
+        h('button', { type: 'button', class: 'line', 'data-do': 'dragCancel' }, 'Cancel'))) : null,
     h('dl', { class: 'band-facts' },
-      h('dt', {}, 'Cheapest listed now'), h('dd', {}, fit(p.low)),
+      h('dt', {}, 'Cheapest listed now'), h('dd', {}, low === null ? 'Next check' : fit(low)),
       h('dt', {}, 'Most sales between'), h('dd', {}, `${fit(p.from)} to ${fit(p.to)}`),
       h('dt', {}, 'Typical sale price'), h('dd', {}, fit(p.soldAt)),
       h('dt', {}, 'Average sale price'), h('dd', {}, fit(p.average)),
@@ -706,9 +747,9 @@ function marketCard(market) {
           .map(([t, tip]) => h('th', { scope: 'col', class: 'n', title: tip || null }, t)),
         h('th', { scope: 'col', class: 'n' }, 'You'))),
       h('tbody', {}, rows.map(r => h('tr', { 'data-key': r.key, 'data-do': r.offer ? 'openOffer' : null, 'data-offer': r.offer || null, class: r.offer ? 'link' : null },
-        h('td', {}, h('div', { class: 'it' }, r.picture ? h('img', { class: 'thumb', src: r.picture, alt: '', draggable: 'false' }) : h('span', { class: 'thumb none' }), h('div', { class: 'named' }, h('b', {}, r.name), r.kind ? h('small', {}, r.kind) : null))),
+        h('td', {}, h('div', { class: 'it' }, r.picture ? h('img', { class: 'thumb', src: r.picture, alt: '', draggable: 'false' }) : h('span', { class: 'thumb none' }), h('div', { class: 'named' }, h('b', {}, r.name), r.kind || r.per > 1 ? h('small', {}, [r.kind, r.per > 1 ? `prices for ${r.per}` : ''].filter(Boolean).join(', ')) : null))),
         h('td', { class: 'n' }, r.movers), h('td', { class: 'n' }, r.drops),
-        h('td', { class: 'n' }, '$' + r.low),
+        h('td', { class: 'n' }, r.low ? '$' + r.low : h('span', { class: 'quiet' }, 'Next check')),
         h('td', { class: 'n' }, r.soldAt ? '$' + r.soldAt : h('span', { class: 'quiet' }, 'Not yet')),
         h('td', { class: 'n' }, r.topLink
           ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': r.topLink, title: `${r.topSeller}: ${plural(r.topSales, 'sale')} seen at $${r.topPrice}` },
@@ -1155,6 +1196,7 @@ const CLICKS = {
     draw();
   },
   pick(target) {
+    if (target.dataset.id !== selected) drag = null;
     selected = target.dataset.id;
     draw();
   },
@@ -1173,6 +1215,15 @@ const CLICKS = {
   discard: target => send('cancel', { id: rowOf(target) }),
   retryAll: () => send('retryAll', {}),
   useSuggested: target => send('enterPrice', { id: rowOf(target), text: target.dataset.value }),
+  dragSave() {
+    if (drag) send('enterPrice', { id: drag.id, text: String(drag.price) });
+    drag = null;
+    draw();
+  },
+  dragCancel() {
+    drag = null;
+    draw();
+  },
   financeShown(target) {
     financeShown = target.dataset.value;
     financePick = null;
@@ -1369,6 +1420,8 @@ document.addEventListener('input', event => {
     } else {
       finDraft[node.dataset.fin] = node.value;
     }
+  } else if (node.dataset.bundle) {
+    editing = node;
   } else if (node.dataset.bulk === 'percent') {
     bulk.percent = node.value;
     bulk.ask = null;
@@ -1379,6 +1432,10 @@ document.addEventListener('input', event => {
 document.addEventListener('change', event => {
   const node = event.target;
   if (node.dataset.sortPick) send('sort', { value: node.value });
+  else if (node.dataset.bundle) {
+    editing = null;
+    send('bundle', { id: node.dataset.bundle, text: node.value });
+  }
   else if (node.dataset.extend === 'time') extendTime = node.value;
   else if (node.dataset.extend === 'reason') extendReason = node.value;
   else if (node.dataset.bulk) {
@@ -1419,6 +1476,56 @@ document.addEventListener('mouseover', event => {
   if (tip) tip.textContent = column ? column.dataset.tip : tip.dataset.rest;
 });
 
+// ---------- dragging a price on the sales line ----------
+
+let dragFrame = 0;
+
+function priceFrom(line, clientX) {
+  const box = line.getBoundingClientRect();
+  const lo = Number(line.dataset.lo), hi = Number(line.dataset.hi);
+  const share = Math.max(0, Math.min(1, (clientX - box.left) / (box.width || 1)));
+  let price = lo + share * (hi - lo);
+  // Within a few pixels of Typical, Cheapest or either end of Most sales, the price sticks to it.
+  const o = state.offers.find(x => x.id === line.dataset.drag), p = o && priceOf(o);
+  const near = 8 / (box.width || 1) * (hi - lo);
+  for (const v of p ? [p.soldAt, p.low, p.from, p.to] : []) if (v != null && Math.abs(price - v) <= near) return fit(v);
+  return Math.max(price >= 0.01 ? 0.01 : 0.00001, fit(price));
+}
+
+function dragTo(line, clientX) {
+  drag = { id: line.dataset.drag, price: priceFrom(line, clientX), held: true };
+  if (!dragFrame) dragFrame = requestAnimationFrame(() => { dragFrame = 0; draw(); });
+}
+
+document.addEventListener('pointerdown', event => {
+  const line = event.target.closest('[data-drag]');
+  if (!line || event.button !== 0) return;
+  event.preventDefault();
+  line.focus({ preventScroll: true });
+  dragTo(line, event.clientX);
+});
+
+document.addEventListener('pointermove', event => {
+  if (!drag || !drag.held) return;
+  const line = document.querySelector(`[data-drag="${CSS.escape(drag.id)}"]`);
+  if (line) dragTo(line, event.clientX);
+});
+
+document.addEventListener('pointerup', () => {
+  if (!drag || !drag.held) return;
+  drag.held = false;
+  draw();
+});
+
+function nudge(line, direction) {
+  const o = state.offers.find(x => x.id === line.dataset.drag);
+  if (!o) return;
+  const from = drag && drag.id === o.id ? drag.price : o.livePrice;
+  const step = from < 0.01 ? 0.0001 : from < 1 ? 0.01 : 0.1;
+  drag = { id: o.id, price: Math.max(step, fit(from + step * direction)), held: false };
+  draw();
+}
+
 function moveSelection(key) {
   const list = shown();
   const at = list.findIndex(o => o.id === selected);
@@ -1456,6 +1563,14 @@ document.addEventListener('keydown', event => {
     editing = null;
     const [type, data] = editMessage(node, 'enter');
     send(type, data);
+  } else if (node.dataset.drag && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+    event.preventDefault();
+    nudge(node, event.key === 'ArrowRight' ? 1 : -1);
+  } else if (node.dataset.drag && event.key === 'Enter' && drag) {
+    CLICKS.dragSave();
+  } else if (event.key === 'Escape' && drag) {
+    drag = null;
+    draw();
   } else if (event.key === 'Escape') {
     editing = null;
     send('cancel', { id: field ? rowOf(node) : selected });

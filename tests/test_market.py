@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 from sellerdesk.config import Settings
 from sellerdesk.market import (BIGGEST_FALL, MAX_PAGES, Listed, MarketApi, MarketError, MarketHub, Offer,
-                                     filter_of, new_watched, span_minutes, take, to_offer)
+                                     bundle_size, filter_of, new_watched, span_minutes, take, to_listed, to_offer)
 
 NOW = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)
 TOKEN = json.dumps({"accessToken": "AT", "expiresIn": 900})
@@ -66,9 +66,9 @@ def api(routes, clock=None):
     return MarketApi("https://e", "id", "secret", transport=transport, clock=clock, sleep=clock.sleep), transport
 
 
-def listed(offer_id, product, quantity, price=1.0, seller="rival"):
+def listed(offer_id, product, quantity, price=1.0, seller="rival", size=1):
     return Listed(id=offer_id, product=product, name="Rifle", kind="Weapon", seller=seller,
-                  link=f"/g/oi/{offer_id}", quantity=quantity, price=price)
+                  link=f"/g/oi/{offer_id}", quantity=quantity, price=price, size=size)
 
 
 class Take(unittest.TestCase):
@@ -79,7 +79,8 @@ class Take(unittest.TestCase):
         take(watched, stock, [listed("a", "p", 7, 2.0), listed("me", "p", 4, 1.0)], {"me"}, NOW)
         day = watched["Items"]["p"]["Days"]["2026-11-10"]
         self.assertEqual((day["Drops"], day["Units"], day["Offers"]), (1, 3, ["a"]))
-        self.assertEqual(day["Falls"], [{"Offer": "a", "Seller": "rival", "Link": "/g/oi/a", "Price": 2.0, "Units": 3}])
+        self.assertEqual(day["Falls"], [{"Offer": "a", "Seller": "rival", "Link": "/g/oi/a", "Price": 2.0, "Units": 3,
+                                         "Size": 1}])
         self.assertEqual(watched["Sweeps"], 2)
         self.assertEqual(watched["Seen"], 2)
 
@@ -101,6 +102,24 @@ class Take(unittest.TestCase):
         self.assertEqual(list(item["Days"]), ["2026-11-09"])
         self.assertEqual(list(watched["Items"]), ["p"])
         self.assertTrue(watched["Started"].endswith("Z"))
+
+    def test_each_prices_one_item_across_bundle_sizes(self):
+        watched, stock = new_watched(), {}
+        rows = [listed("a", "p", 10, 0.8, size=100), listed("b", "p", 10, 3.99, size=500), listed("c", "p", 10, 0.005)]
+        take(watched, stock, rows, set(), NOW)
+        self.assertEqual(watched["Items"]["p"]["Each"], [0.005, 0.00798, 0.008])
+        take(watched, stock, [listed("a", "p", 8, 0.8, size=100)], set(), NOW)
+        fall = watched["Items"]["p"]["Days"]["2026-11-10"]["Falls"][0]
+        self.assertEqual((fall["Price"], fall["Units"], fall["Size"]), (0.8, 2, 100))
+
+    def test_old_falls_take_the_size_of_their_offer_still_listed(self):
+        watched = new_watched()
+        old = [{"Offer": "a", "Seller": "r", "Link": "", "Price": 0.8, "Units": 1},
+               {"Offer": "gone", "Seller": "r", "Link": "", "Price": 4.0, "Units": 1}]
+        watched["Items"]["p"] = {"Name": "", "Kind": "", "Picture": "", "Sellers": 0, "Low": 0, "Typical": 0,
+                                 "Days": {"2026-11-09": {"Drops": 2, "Units": 2, "Offers": [], "Falls": old}}}
+        take(watched, {}, [listed("a", "p", 10, 0.8, size=100)], set(), NOW)
+        self.assertEqual([f.get("Size") for f in old], [100, None])
 
     def test_stock_and_items_do_not_grow_without_end(self):
         watched, stock = new_watched(), {"gone": 5}
@@ -267,6 +286,32 @@ class Hub(unittest.TestCase):
         again = MarketHub(Broken(), Settings(), self.path)
         self.assertEqual(again.snapshot()["problem"], "Eldorado asked for fewer requests.")
         self.assertEqual(set(again.snapshot()), {"watched", "standings", "checked", "siteChecked", "problem"})
+
+
+class Bundle(unittest.TestCase):
+    # Real titles from the Assorted Seeds listing, 2026-11-10.
+    def test_reads_the_count_from_the_title(self):
+        cases = {
+            "100x Assorted Seeds": 100, "100x ASSORTED SEEDS": 100, "500 Assorted Seeds": 500, "x500 Assorted Seeds": 500,
+            "1000 Assorted Seeds": 1000, "Assorted Seeds X200": 200, "50 Assorted Seeds": 50, "Assorted Seeds": 1,
+            "Assorted Seeds - Trade in 8 min": 1, "500x Seeds": 500, "Seeds": 1, "1x Assorted Seeds": 1,
+            "✅ 1,000 Assorted Seeds ✅": 1000, "10k Assorted Seeds": 10000, "Assorted Seeds 50": 50,
+            "Assorted Seeds Tier 3": 1, "5 min delivery Assorted Seeds": 1, "Assorted Seeds 24/7": 1,
+            "Assorted Seeds x 250 | Fast": 250, "Assorted Seeds 100%": 1,
+        }
+        for title, size in cases.items():
+            self.assertEqual(bundle_size(title, "Assorted Seeds"), size, title)
+
+    def test_a_digit_in_the_item_name_is_not_a_count(self):
+        self.assertEqual(bundle_size("MK2 Rifle", "MK2 Rifle"), 1)
+        self.assertEqual(bundle_size("3x MK2 Rifle", "MK2 Rifle"), 3)
+        self.assertEqual(bundle_size("Box of Ammo", "Box of Ammo"), 1)
+
+    def test_listing_rows_carry_the_size(self):
+        row = {"offer": {"id": "a", "offerTitle": "100x Assorted Seeds", "quantity": 5,
+                         "tradeEnvironmentValues": [{"value": "Nature"}, {"value": "Assorted Seeds"}],
+                         "pricePerUnitInUSD": {"amount": 0.8}}}
+        self.assertEqual(to_listed(row).size, 100)
 
 
 if __name__ == "__main__":

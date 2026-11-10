@@ -80,6 +80,10 @@ If Eldorado refuses an edit, the row turns red and keeps the value you typed. A 
 
 **Others sold at** shows the typical price other sellers sold the same item for this week, with the number of sales under it. Green means your price sits inside the range most of those sales happened in. Red means you're below or above all of it. The side panel draws that range on a line, with the cheapest listing, the usual range, the typical sale and your price marked and named under it. It offers **Set price to** the typical price when there are enough sales to go on.
 
+Drag your mark along that line, or focus it and use the left and right arrow keys, to try a new price. The panel shows where it would place you among the listings and how far it is from the typical sale. The mark sticks to the typical sale, the cheapest listing and the ends of the usual range when you pass close to them. Nothing reaches Eldorado until you press **Save price**. **Cancel** or Escape drops it.
+
+Sellers sell the same item in different bundle sizes: one offer is "100x Seeds", the next "1000 Seeds", another a single seed. Eldorado gives only the price of one unit, so SellerDesk reads the count from each offer's title (`100x`, `x500`, `1000 ...`, `... X200`). A title with no count is one item. Every price is worked out per item, then shown for as many items as one unit of your offer holds, so all of them compare with your price. The count it read for your offer sits above the line. If it's wrong, type the right one there. Insights' market list names the size its prices are for when it isn't one.
+
 Click a row to open the side panel. It compares your price, delivery time and ratings with the top 5 sellers and names your biggest gap.
 
 **Change many** changes one game's prices by a percentage, or its delivery time. You review the list before it sends.

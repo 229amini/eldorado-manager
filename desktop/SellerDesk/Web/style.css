@@ -316,6 +316,19 @@ aside .hint { margin: 0; }
 .band-line .low { background: var(--muted); }
 .band-line .mid { background: var(--up); }
 .band-line .you { background: var(--signal); width: 6px; margin-left: -3px; box-shadow: 0 0 0 2px var(--field); }
+.band-line.can-drag { cursor: ew-resize; touch-action: none; }
+.band-line.can-drag:focus-visible { outline: 2px solid var(--signal); outline-offset: 6px; }
+.band-line.can-drag .you { width: 8px; margin-left: -4px; top: -6px; height: 26px; border-radius: 3px; }
+.band-line.held .you { box-shadow: 0 0 0 2px var(--field), 0 0 0 4px color-mix(in srgb, var(--signal) 35%, transparent); }
+.band-line .was { background: transparent; border: 1.5px dashed var(--signal); width: 6px; margin-left: -3px; opacity: .7; }
+.band-pick { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 9px 10px; border-radius: var(--r); background: var(--raised); font-variant-numeric: tabular-nums; }
+.band-pick b { font-size: 16px; }
+.band-pick .acts { margin-left: auto; }
+.band-size { margin: 0; font-size: 13px; color: var(--muted); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.band-size small { font-size: 12px; opacity: .8; }
+.band-size .size { width: 72px; height: 26px; padding: 0 7px; border: 0; background: var(--raised); color: var(--ink); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1px var(--line); }
+.band-size .size:hover { box-shadow: inset 0 0 0 1px var(--muted); }
+.band-size .size:focus-visible { outline: 2px solid var(--signal); outline-offset: 1px; }
 .band-key { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
 .band-key span { display: inline-flex; align-items: center; gap: 5px; }
 .band-key i { width: 4px; height: 12px; border-radius: 2px; }

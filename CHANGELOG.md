@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.2
+
+- Market prices now account for bundle sizes. Sellers list the same item as "100x", "500" or a single one, and Eldorado gives only the price of one unit, so a typical price used to mix bundles of every size. SellerDesk reads the count from each offer's title, works every price out per item and shows it for the size of your own offer. If it reads your offer wrong, type the right count in the side panel.
+- Offers: drag your mark on the sales line in the side panel, or use the arrow keys, to try a price. It shows where you would place and how far you are from the typical sale, and sends nothing until you press **Save price**.
+- Server: sales recorded before this version take the bundle size of their offer if it is still listed. The rest drop out of the numbers, which may show fewer sales for up to a week. Update the server before the desktop app; an older server sends no bundle sizes and the app then shows no sales.
+
 ## 1.6.1
 
 - Finance: each order under **To assign** has a button per person that gives them every unit left and saves in one click. The split panel gives each person **All**, **Rest** and **Half** next to **−** and **+**.
