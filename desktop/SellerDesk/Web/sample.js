@@ -98,6 +98,8 @@
     },
     bulkNote: '', bulkBusy: false,
     hub: !location.search.includes('nohub'),
+    version: '1.6.2',
+    update: location.search.includes('update') ? { version: '1.6.3', percent: null, starting: false, problem: '', notes: ['Market prices now account for bundle sizes.', 'Offers: drag your mark on the sales line to try a price.'] } : null,
     pricing: {
       1: { low: 0.01, sales: 14, soldAt: 0.06, average: 0.064, from: 0.04, to: 0.09, topPrice: 0.05, topSeller: 'QuickLoot', topSales: 6, topLink: '/x/oi/1', units: 22000, size: 100, sizeYours: false, listed: [0.01, 0.03, 0.04, 0.05, 0.05, 0.06, 0.07, 0.08, 0.09, 0.12], verdict: 'fair', suggest: 0.06, advice: 'You’re inside the range most sales happened in, 0.04 to 0.09.' },
       3: { low: 0.05, sales: 9, soldAt: 0.22, average: 0.21, from: 0.15, to: 0.3, topPrice: 0.2, topSeller: 'ArcDepot', topSales: 4, topLink: '/x/oi/3', units: 60, size: 1, sizeYours: false, listed: [0.05, 0.12, 0.18, 0.2, 0.25], verdict: 'low', suggest: 0.22, advice: 'Most sales happened between 0.15 and 0.30, and you’re below all of that. 0.22 sits in the middle of them.' },
@@ -158,6 +160,8 @@
     }
     if (type === 'addPayment') book.payments.push({ id: 'y' + Date.now(), person: data.person, amount: +data.amount, date: data.date, note: data.note });
     if (type === 'theme') state.theme = data.value;
+    if (type === 'updateLater') state.update = null;
+    if (type === 'update' && state.update) { state.update.percent = 0; const step = () => { state.update.percent = Math.min(100, state.update.percent + 25); if (state.update.percent < 100) setTimeout(step, 150); else state.update.percent = null, state.update.starting = true; window.managerState(state); }; setTimeout(step, 150); }
     if (type === 'sort') state.sort = data.value;
     if (type === 'sortFlip') {
       state.descending = !state.descending;

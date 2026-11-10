@@ -14,9 +14,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: powershell -ExecutionPolicy Bypass -File desktop\build.ps1
+      # The app's update banner shows these lines as "What's new".
+      - name: Release notes from CHANGELOG.md
+        shell: pwsh
+        run: |
+          $version = '${{ github.ref_name }}'.TrimStart('v')
+          $notes = @(); $inside = $false
+          foreach ($line in Get-Content CHANGELOG.md) {
+            if ($line -match '^## ') { if ($inside) { break }; $inside = $line.Trim() -eq "## $version"; continue }
+            if ($inside) { $notes += $line }
+          }
+          Set-Content -Path release-notes.md -Value (($notes -join "`n").Trim()) -Encoding utf8
       - uses: softprops/action-gh-release@v2
         with:
           files: desktop/dist/SellerDeskSetup.exe
+          body_path: release-notes.md
           generate_release_notes: true
 
   image:

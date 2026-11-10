@@ -28,6 +28,7 @@ let asking = null;    // the order action waiting for its second click: 'deliver
 let extendTime = 'Minute15';
 let extendReason = 'WaitingForBuyer';
 let editing = null;   // the field being typed in, which a redraw must leave alone
+let updateNotes = false;   // the update's list of changes, opened from the strip
 let drag = null;      // { id, price, held }: a price picked on the sales line, not sent until Save price
 let fresh = null;     // a field just focused by the pointer, whose selection the click would clear
 
@@ -233,7 +234,7 @@ function topBar() {
   const unassigned = state.finance && state.finance.ready ? sales90().filter(o => assignedUnits(o) < o.quantity).length : null;
   const tabs = [['home', 'Home', null], ['offers', 'Offers', state.offers.filter(isLive).length], ['orders', 'Orders', open], ['sales', 'Sales', null], ['customers', 'Customers', null], ['finance', 'Finance', unassigned], ['insights', 'Insights', null]];
   return h('header', { class: 'top' },
-    h('b', { class: 'name', title: 'SellerDesk' }, h('span', { class: 'mark' }, logo()), h('span', { class: 'label' }, 'SellerDesk')),
+    h('b', { class: 'name', title: state.version ? 'SellerDesk ' + state.version : 'SellerDesk' }, h('span', { class: 'mark' }, logo()), h('span', { class: 'label' }, 'SellerDesk')),
     h('nav', { role: 'tablist', 'aria-label': 'Sections' },
       tabs.map(([key, label, count]) => h('button', {
         type: 'button', role: 'tab', 'aria-selected': String(tab === key), 'data-do': 'tab', 'data-value': key,
@@ -268,8 +269,28 @@ function attention() {
       h('button', { type: 'button', 'data-do': 'notice', 'data-url': notice.link || '' }, h('b', {}, notice.title), notice.text ? ' ' + notice.text : ''),
       h('button', { type: 'button', class: 'x', 'data-do': 'dismiss', 'data-value': notice.id, 'aria-label': 'Dismiss' }, cross())));
   }
+  const update = updateFlag();
+  if (update) items.unshift(update);
   if (!items.length && state.checked) items.push(h('span', { class: 'flag calm', 'data-key': 'calm' }, "You're all caught up. Nothing needs you right now."));
-  return items.length ? h('div', { class: 'attention', role: 'status' }, items) : null;
+  if (!items.length) return null;
+  const u = state.update;
+  const notes = u && updateNotes && u.notes && u.notes.length && u.percent == null && !u.starting
+    ? h('ul', { class: 'update-notes', 'data-key': 'update-notes', 'aria-label': `What's new in ${u.version}` }, u.notes.map((n, i) => h('li', { 'data-key': 'un' + i }, n))) : null;
+  return [h('div', { class: 'attention', role: 'status' }, items), notes];
+}
+
+// A newer SellerDesk on GitHub. One click downloads it, checks it against GitHub's checksum and installs it.
+function updateFlag() {
+  const u = state.update;
+  if (!u) return null;
+  if (u.starting) return h('span', { class: 'flag update', 'data-key': 'update' }, h('b', {}, `Installing ${u.version}.`), ' SellerDesk opens again in a moment.');
+  if (u.percent != null) return h('span', { class: 'flag update', 'data-key': 'update' }, h('b', {}, `Downloading ${u.version}`), ` ${u.percent}%`);
+  return h('span', { class: 'flag update', 'data-key': 'update' },
+    h('b', {}, `SellerDesk ${u.version} is out.`),
+    u.problem ? h('span', { class: 'why' }, ' ' + u.problem) : null,
+    u.notes && u.notes.length ? h('button', { type: 'button', class: 'link', 'data-do': 'updateNotes', 'aria-expanded': String(updateNotes) }, updateNotes ? 'Hide changes' : "What's new") : null,
+    h('button', { type: 'button', class: 'solid small', 'data-do': 'update' }, u.problem ? 'Try again' : 'Update now'),
+    h('button', { type: 'button', class: 'x', 'data-do': 'updateLater', 'aria-label': 'Later', title: 'Later. It asks again next time SellerDesk starts.' }, cross()));
 }
 
 function band(order) {
@@ -1218,6 +1239,10 @@ const CLICKS = {
   dragSave() {
     if (drag) send('enterPrice', { id: drag.id, text: String(drag.price) });
     drag = null;
+    draw();
+  },
+  updateNotes() {
+    updateNotes = !updateNotes;
     draw();
   },
   dragCancel() {

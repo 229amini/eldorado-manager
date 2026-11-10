@@ -10,7 +10,8 @@ namespace SellerDesk
     /// <summary>
     /// SellerDeskSetup.exe is both installer and app. Run from anywhere, it installs itself. Run from the
     /// install folder, it opens the dashboard and starts the alarm behind it. Flags: --background (the
-    /// alarm alone, used at sign-in), --dashboard, --settings, --uninstall,
+    /// alarm alone, used at sign-in), --dashboard, --settings, --uninstall, --updated (an install started by
+    /// the in-app update, which skips the welcome),
     /// --demo [calm|critical|late|flow], --snapshot DIR.
     /// </summary>
     public static class Program
@@ -64,7 +65,7 @@ namespace SellerDesk
             }
             else if (!Installer.IsInstalledCopy)
             {
-                Installer.Install();
+                Installer.Install(args.Contains("--updated"));
             }
             else if (args.Contains("--background") || args.Contains("--welcome"))
             {

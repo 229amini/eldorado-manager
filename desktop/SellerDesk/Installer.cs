@@ -44,12 +44,13 @@ namespace SellerDesk
         public static bool IsInstalledCopy =>
             string.Equals(CurrentExe, InstalledExe, StringComparison.OrdinalIgnoreCase);
 
-        public static void Install()
+        /// <param name="updated">Started by the in-app update: come back quietly, alarm and dashboard, no welcome.</param>
+        public static void Install(bool updated = false)
         {
             StopOthers();
             Directory.CreateDirectory(Config.Home);
             foreach (var old in OldInstalls) MoveOldInstall(old);
-            File.Copy(CurrentExe, InstalledExe, true);
+            CopyOver();
             using (var key = Registry.CurrentUser.CreateSubKey(RunKey))
                 key.SetValue(Name, $"\"{InstalledExe}\" --background");
             using (var key = Registry.CurrentUser.CreateSubKey(UninstallKey))
@@ -65,8 +66,31 @@ namespace SellerDesk
             }
             AddShortcut(Dashboard, "--dashboard");
             AddShortcut(Settings, "--settings");
-            Config.Log("installed " + InstalledExe);
-            Start("--welcome");
+            Config.Log((updated ? "updated " : "installed ") + InstalledExe);
+            if (!updated)
+            {
+                Start("--welcome");
+                return;
+            }
+            StartAlarm();
+            StartDashboard();
+        }
+
+        // A process stopped a moment ago can hold its exe a little longer, so the copy tries again for a few seconds.
+        private static void CopyOver()
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    File.Copy(CurrentExe, InstalledExe, true);
+                    return;
+                }
+                catch (IOException) when (attempt < 10)
+                {
+                    System.Threading.Thread.Sleep(500);
+                }
+            }
         }
 
         /// <summary>

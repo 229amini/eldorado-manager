@@ -63,6 +63,12 @@ namespace SellerDesk
         private Watched watched = MarketWatch.Load();
         private string bulkNote = "";
         private bool bulkBusy;
+        private Release update;          // a newer version on GitHub, once a check found one
+        private bool updateHidden;       // Later: out of sight until the app starts again
+        private int? updatePercent;      // downloading
+        private bool updateStarting;     // the new exe is running and will close this window
+        private string updateProblem = "";
+        private const int FirstUpdateCheckSeconds = 20, UpdateCheckHours = 6;
 
         public DashboardWindow(Config config, Market market)
         {
@@ -102,6 +108,7 @@ namespace SellerDesk
         {
             clock.Start();
             new Thread(Watch) { IsBackground = true, Name = "market" }.Start();
+            new Thread(WatchUpdates) { IsBackground = true, Name = "updates" }.Start();
             try
             {
                 WebHost.Unpack();
@@ -208,6 +215,15 @@ namespace SellerDesk
                 ["hub"] = hub != null,
                 ["finance"] = FinanceToWeb(),
                 ["zoom"] = Math.Round(web.ZoomFactor * 100),
+                ["version"] = Updater.Current.ToString(),
+                ["update"] = update == null || (updateHidden && updatePercent == null) ? null : new Dictionary<string, object>
+                {
+                    ["version"] = update.Version.ToString(),
+                    ["notes"] = update.Notes,
+                    ["percent"] = updatePercent,
+                    ["starting"] = updateStarting,
+                    ["problem"] = updateProblem,
+                },
             }));
         }
 
@@ -377,6 +393,11 @@ namespace SellerDesk
                 case "salesDays": ReadSales(Convert.ToInt32(message["days"], CultureInfo.InvariantCulture)); return;
                 case "bulkPrice": BulkPrice(Text("game"), Convert.ToDouble(message["percent"], CultureInfo.InvariantCulture)); return;
                 case "bulkDelivery": BulkDelivery(Text("game"), Text("value")); return;
+                case "update": Update(); return;
+                case "updateLater":
+                    updateHidden = true;
+                    Later();
+                    return;
             }
             if (row == null) return;
             switch (Text("type"))
@@ -775,6 +796,70 @@ namespace SellerDesk
             row.PendingPrice = next;
             row.Note = Waiting;
             Soon(row, "price", () => CommitPrice(row));
+        }
+
+        // ---------- updates ----------
+
+        /// <summary>Looks for a newer release shortly after start and then every few hours. Offline just waits for the next look.</summary>
+        private void WatchUpdates()
+        {
+            Thread.Sleep(TimeSpan.FromSeconds(FirstUpdateCheckSeconds));
+            Updater.Tidy();
+            while (!closing)
+            {
+                try
+                {
+                    var found = Updater.Check();
+                    if (found != null) Post(() =>
+                    {
+                        if (update == null || found.Version > update.Version) update = found;
+                        Later();
+                    });
+                }
+                catch (Exception error) when (error is System.Net.WebException || error is System.IO.IOException || error is ArgumentException || error is InvalidOperationException)
+                {
+                    Config.Log("update check: " + error.Message);
+                }
+                Thread.Sleep(TimeSpan.FromHours(UpdateCheckHours));
+            }
+        }
+
+        private async void Update()
+        {
+            if (update == null || updatePercent != null || updateStarting) return;
+            if (waiting.Count > 0)
+            {
+                updateProblem = "A change is waiting to send. Send or cancel it first, then update.";
+                Later();
+                return;
+            }
+            var release = update;
+            updateProblem = "";
+            updatePercent = 0;
+            Later();
+            try
+            {
+                var exe = await Task.Run(() => Updater.Download(release, percent => Post(() =>
+                {
+                    updatePercent = percent;
+                    Later();
+                })));
+                updateStarting = true;
+                Later();
+                Updater.Launch(exe);   // the new exe stops this window, installs, and opens the dashboard again
+            }
+            catch (Exception error) when (error is System.Net.WebException || error is System.IO.IOException || error is System.IO.InvalidDataException
+                || error is UnauthorizedAccessException || error is System.ComponentModel.Win32Exception)
+            {
+                Config.Log("update: " + error.Message);
+                updateProblem = error is System.Net.WebException ? "GitHub couldn't be reached. Check the connection and try again." : error.Message;
+                updateStarting = false;
+            }
+            finally
+            {
+                updatePercent = null;
+                Later();
+            }
         }
 
         /// <summary>Items per unit for one offer, when its title reads wrong. Blank or the title's own number clears it.</summary>

@@ -102,6 +102,14 @@ aside .line:hover:not(:disabled) { background: var(--line); }
 .flag.calm { background: none; padding: 0; color: var(--muted); font-weight: 400; }
 .flag.notice { padding-right: 3px; font-weight: 400; }
 .flag.notice button:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.flag.update { max-width: none; padding-right: 3px; gap: 8px; font-weight: 400; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--signal) 45%, var(--hair)); }
+.flag.update b { font-weight: 600; }
+.flag.update .why { color: var(--down); }
+.flag.update .link { padding: 0 2px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
+.flag.update .link:hover { color: var(--ink); }
+.flag.update .solid.small { min-height: 24px; height: 24px; padding: 0 10px; font-size: 13px; font-weight: 600; border-radius: 7px; }
+.update-notes { flex: none; margin: 0 var(--edge) 8px; padding: 10px 14px 10px 30px; max-width: 760px; background: var(--panel); border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--hair); font-size: 13px; line-height: 1.5; color: var(--muted); }
+.update-notes li + li { margin-top: 4px; }
 .flag .x { flex: none; width: 24px; height: 24px; display: grid; place-items: center; color: var(--muted); border-radius: 12px; }
 .flag .x:hover { color: var(--ink); background: var(--raised); }
 .flag .x .icon { width: 14px; height: 14px; }

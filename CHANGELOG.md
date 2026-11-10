@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.3
+
+- SellerDesk updates itself. When a newer version is out, a line at the top of the dashboard says so, with **What's new** and **Update now**. One click downloads it, checks it against GitHub's SHA-256 checksum, installs it and opens the dashboard again, with your settings and data kept. Versions before 1.6.3 have to install this one by hand.
+- The release page now lists each version's changes from this file.
+
 ## 1.6.2
 
 - Market prices now account for bundle sizes. Sellers list the same item as "100x", "500" or a single one, and Eldorado gives only the price of one unit, so a typical price used to mix bundles of every size. SellerDesk reads the count from each offer's title, works every price out per item and shows it for the size of your own offer. If it reads your offer wrong, type the right count in the side panel.
