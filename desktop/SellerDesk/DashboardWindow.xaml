@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="SellerDesk" Icon="app.ico" Width="1440" Height="900" MinWidth="1040" MinHeight="640"
         WindowStartupLocation="CenterScreen" Background="Black"
-        FontFamily="pack://application:,,,/Fonts/#Hind" UseLayoutRounding="True">
+        FontFamily="pack://application:,,,/Fonts/#Figtree" UseLayoutRounding="True">
     <!-- The dashboard is the page in Web\. This window holds it and answers for it. -->
     <Grid x:Name="Host">
         <StackPanel x:Name="Missing" VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560" Visibility="Collapsed">

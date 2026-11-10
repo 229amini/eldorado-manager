@@ -4,7 +4,7 @@
         Title="SellerDesk settings" Icon="app.ico" Width="620" SizeToContent="Height"
         WindowStyle="None" AllowsTransparency="True" Background="{x:Null}" ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen" Topmost="True"
-        FontFamily="pack://application:,,,/Fonts/#Hind" FontSize="15"
+        FontFamily="pack://application:,,,/Fonts/#Figtree" FontSize="15"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
     <Window.Resources>
         <Style x:Key="Field" TargetType="Control">

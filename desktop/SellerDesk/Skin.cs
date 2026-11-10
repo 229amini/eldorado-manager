@@ -13,30 +13,30 @@ namespace SellerDesk
         public static readonly Skin Dark = new Skin
         {
             Name = "dark", Label = "Dark",
-            IslandTop = Hex("#272939"), IslandBottom = Hex("#2F3144"), IslandInk = Hex("#ECEEF6"), IslandMuted = Hex("#A6ABC2"),
-            Calm = Hex("#9A9BFF"), Hurry = Hex("#FFC27A"), Critical = Hex("#FF9A8F"), Soft = true,
-            Room = Hex("#7A2B45"), LateRoom = Hex("#521C30"), RoomEdge = Hex("#1D1E2B"), Beam = Hex("#9A9BFF"), Pulse = Hex("#FF9A8F"),
-            ClockTop = Hex("#FFFFFF"), ClockBottom = Hex("#ECEEF6"), ClockGlow = Hex("#FF9A8F"), ClockGlowOpacity = 0.5, ClockHot = Hex("#FFFFFF"),
-            RoomInk = Hex("#FFFFFF"), RoomMuted = Hex("#F4DCE3"), Vignette = 0.6, Grain = 0,
-            PillFace = Hex("#9A9BFF"), PillInk = Hex("#17172E"), GhostInk = Hex("#FFFFFF"), GhostFace = Hex("#14FFFFFF"), GhostLine = Hex("#59FFFFFF"),
-            Corner = 10, Surface = Hex("#1D1E2B"), SurfaceLine = Hex("#33364A"), Field = Hex("#272939"), FieldLine = Hex("#3B3E54"),
-            Ink = Hex("#ECEEF6"), Muted = Hex("#A6ABC2"), Label2 = Hex("#CDD1E2"), Signal = Hex("#9A9BFF"), SignalInk = Hex("#17172E"),
-            Quiet = Hex("#272939"), Error = Hex("#FF9A8F"),
+            IslandTop = Hex("#222327"), IslandBottom = Hex("#2B2C31"), IslandInk = Hex("#ECECEF"), IslandMuted = Hex("#9A9CA6"),
+            Calm = Hex("#A3A5FF"), Hurry = Hex("#FFC27A"), Critical = Hex("#FF8B80"), Soft = true,
+            Room = Hex("#6E2530"), LateRoom = Hex("#4A1820"), RoomEdge = Hex("#1A1B1F"), Beam = Hex("#A3A5FF"), Pulse = Hex("#FF8B80"),
+            ClockTop = Hex("#FFFFFF"), ClockBottom = Hex("#ECECEF"), ClockGlow = Hex("#FF8B80"), ClockGlowOpacity = 0.5, ClockHot = Hex("#FFFFFF"),
+            RoomInk = Hex("#FFFFFF"), RoomMuted = Hex("#F2DADC"), Vignette = 0.6, Grain = 0,
+            PillFace = Hex("#5E61E6"), PillInk = Hex("#FFFFFF"), GhostInk = Hex("#FFFFFF"), GhostFace = Hex("#14FFFFFF"), GhostLine = Hex("#59FFFFFF"),
+            Corner = 8, Surface = Hex("#1A1B1F"), SurfaceLine = Hex("#33343A"), Field = Hex("#222327"), FieldLine = Hex("#3A3B42"),
+            Ink = Hex("#ECECEF"), Muted = Hex("#9A9CA6"), Label2 = Hex("#C9CAD1"), Signal = Hex("#5E61E6"), SignalInk = Hex("#FFFFFF"),
+            Quiet = Hex("#222327"), Error = Hex("#FF8B80"),
         };
 
         // The critical room stays pale here, so the dark pill and ghost buttons keep their contrast.
         public static readonly Skin Light = new Skin
         {
             Name = "light", Label = "Light",
-            IslandTop = Hex("#FFFFFF"), IslandBottom = Hex("#F5F4FA"), IslandInk = Hex("#25263C"), IslandMuted = Hex("#5F6279"),
-            Calm = Hex("#5A58D6"), Hurry = Hex("#B45309"), Critical = Hex("#C5354E"), Soft = false,
-            Room = Hex("#FDE4E8"), LateRoom = Hex("#FBD2DA"), RoomEdge = Hex("#F4BCC7"), Beam = Hex("#C5354E"), Pulse = Hex("#C5354E"),
-            ClockTop = Hex("#C5354E"), ClockBottom = Hex("#C5354E"), ClockGlow = Hex("#C5354E"), ClockGlowOpacity = 0, ClockHot = Hex("#7F1D30"),
-            RoomInk = Hex("#25263C"), RoomMuted = Hex("#5B2B38"), Vignette = 0.1, Grain = 0,
-            PillFace = Hex("#25263C"), PillInk = Hex("#FFFFFF"), GhostInk = Hex("#25263C"), GhostFace = Hex("#00000000"), GhostLine = Hex("#25263C"),
-            Corner = 10, Surface = Hex("#F5F4FA"), SurfaceLine = Hex("#E6E5F0"), Field = Hex("#FFFFFF"), FieldLine = Hex("#D3D2E2"),
-            Ink = Hex("#25263C"), Muted = Hex("#5F6279"), Label2 = Hex("#3A3C55"), Signal = Hex("#5A58D6"), SignalInk = Hex("#FFFFFF"),
-            Quiet = Hex("#EEEDF7"), Error = Hex("#C5354E"),
+            IslandTop = Hex("#FFFFFF"), IslandBottom = Hex("#F5F5F7"), IslandInk = Hex("#1C1D21"), IslandMuted = Hex("#60626B"),
+            Calm = Hex("#5658D8"), Hurry = Hex("#B45309"), Critical = Hex("#C8364A"), Soft = false,
+            Room = Hex("#FDE5E7"), LateRoom = Hex("#FBD3D7"), RoomEdge = Hex("#F4BEC4"), Beam = Hex("#C8364A"), Pulse = Hex("#C8364A"),
+            ClockTop = Hex("#C8364A"), ClockBottom = Hex("#C8364A"), ClockGlow = Hex("#C8364A"), ClockGlowOpacity = 0, ClockHot = Hex("#7F1D2A"),
+            RoomInk = Hex("#1C1D21"), RoomMuted = Hex("#5B2B33"), Vignette = 0.1, Grain = 0,
+            PillFace = Hex("#1C1D21"), PillInk = Hex("#FFFFFF"), GhostInk = Hex("#1C1D21"), GhostFace = Hex("#00000000"), GhostLine = Hex("#1C1D21"),
+            Corner = 8, Surface = Hex("#F5F5F7"), SurfaceLine = Hex("#E3E3E8"), Field = Hex("#FFFFFF"), FieldLine = Hex("#D4D4DB"),
+            Ink = Hex("#1C1D21"), Muted = Hex("#60626B"), Label2 = Hex("#393A41"), Signal = Hex("#5658D8"), SignalInk = Hex("#FFFFFF"),
+            Quiet = Hex("#EEEEF1"), Error = Hex("#C8364A"),
         };
 
         public static readonly Skin[] All = { Dark, Light };

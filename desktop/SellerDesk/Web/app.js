@@ -58,9 +58,8 @@ function s(tag, attrs, ...kids) {
 const icon = path => s('svg', { viewBox: '0 0 24 24', class: 'icon', 'aria-hidden': 'true' }, s('path', { d: path }));
 const bell = () => icon('M12 2a7 7 0 0 0-7 7v5l-2 3h18l-2-3V9a7 7 0 0 0-7-7zm0 20a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z');
 const logo = () => s('svg', { viewBox: '0 0 256 256', class: 'logo', 'aria-hidden': 'true' },
-  s('path', { d: 'M84 172v-58a44 44 0 0 1 88 0v58z' }),
-  s('rect', { x: 62, y: 178, width: 132, height: 26, rx: 13 }),
-  s('path', { d: 'M58 72a70 70 0 0 0-14 46M198 72a70 70 0 0 1 14 46', class: 'waves' }));
+  s('path', { d: 'M150 80H102a25 25 0 0 0 0 50h52a25 25 0 0 1 0 50H76', class: 'glyph' }),
+  s('circle', { cx: 200, cy: 66, r: 22, class: 'ping' }));
 const plus = () => icon('M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z');
 const minus = () => icon('M5 11h14v2H5z');
 const moon = () => icon('M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z');
