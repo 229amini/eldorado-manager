@@ -25,6 +25,7 @@ let ordersShown = 'open';
 let marketShown = 'missing';
 let bulk = null;      // { game, percent, promise, ask } while the bulk panel is open
 let asking = null;    // the order action waiting for its second click: 'deliver' or 'extend'
+let settingPrice = null; // the offer whose Home "Set" waits for its second click
 let extendTime = 'Minute15';
 let extendReason = 'WaitingForBuyer';
 let editing = null;   // the field being typed in, which a redraw must leave alone
@@ -885,8 +886,12 @@ function opportunities() {
       h('span', { class: p.verdict === 'low' ? 'pill up' : 'pill warn' }, p.verdict === 'low' ? 'Raise' : 'High'),
       h('div', {}, h('b', {}, o.title), h('p', {}, `You ${fit(o.livePrice)} · sales ${fit(p.from)}–${fit(p.to)}`)),
       h('div', { class: 'acts' },
-        h('button', { type: 'button', class: 'tool', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, 'Set ' + fit(p.suggest)),
-        h('button', { type: 'button', class: 'tool', 'data-do': 'openOffer', 'data-offer': o.id }, 'Open'))))
+        // One click from Home would reprice a live offer, so Set asks once more before it sends.
+        settingPrice === String(o.id)
+          ? [h('button', { type: 'button', class: 'solid', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, 'Send ' + fit(p.suggest)),
+             h('button', { type: 'button', class: 'tool', 'data-do': 'setNo' }, 'Cancel')]
+          : [h('button', { type: 'button', class: 'tool', 'data-do': 'setAsk', 'data-value': o.id }, 'Set ' + fit(p.suggest)),
+             h('button', { type: 'button', class: 'tool', 'data-do': 'openOffer', 'data-offer': o.id }, 'Open')])))
       : h('p', { class: 'hint' }, Object.keys(state.pricing || {}).length
         ? 'All prices are in range.'
         : 'Waiting for market data.'));
@@ -1287,7 +1292,18 @@ const CLICKS = {
   retry: target => send('retry', { id: rowOf(target) }),
   discard: target => send('cancel', { id: rowOf(target) }),
   retryAll: () => send('retryAll', {}),
-  useSuggested: target => send('enterPrice', { id: rowOf(target), text: target.dataset.value }),
+  useSuggested(target) {
+    settingPrice = null;
+    send('enterPrice', { id: rowOf(target), text: target.dataset.value });
+  },
+  setAsk(target) {
+    settingPrice = target.dataset.value;
+    draw();
+  },
+  setNo() {
+    settingPrice = null;
+    draw();
+  },
   dragSave() {
     if (drag) send('enterPrice', { id: drag.id, text: String(drag.price) });
     drag = null;

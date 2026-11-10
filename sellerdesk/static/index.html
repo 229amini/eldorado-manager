@@ -4,25 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SellerDesk</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23D4161C'/%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Crect width='256' height='256' rx='60' fill='%235e61e6'/%3E%3Cpath d='M150 80H102a25 25 0 0 0 0 50h52a25 25 0 0 1 0 50H76' fill='none' stroke='%23fff' stroke-width='34' stroke-linecap='round' stroke-linejoin='round'/%3E%3Ccircle cx='200' cy='66' r='22' fill='%23d4363c' stroke='%235e61e6' stroke-width='14' paint-order='stroke'/%3E%3C/svg%3E">
 <style>
 @font-face { font-family: "Big Shoulders"; src: url(big-shoulders-display-latin-800-normal.woff2) format("woff2"); font-weight: 800; font-display: swap; }
-@font-face { font-family: "Atkinson"; src: url(atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Atkinson"; src: url(atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url(figtree-latin-400.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Figtree"; src: url(figtree-latin-700.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 
-/* The room is the status light. Each stage sets the whole palette. */
-:root { --room: #14285C; --ink: #F3F5FF; --soft: #B6C2EC; --line: #ffffff2e; --beam: #ffffff14; }
-body[data-stage="calm"]     { --room: #1E44B8; --ink: #F5F7FF; --soft: #C6D2FA; --line: #ffffff33; --beam: #ffffff1c; }
-body[data-stage="hurry"]    { --room: #F2A900; --ink: #1E1503; --soft: #5A4206; --line: #1e150333; --beam: #ffffff40; }
-body[data-stage="critical"] { --room: #D4161C; --ink: #FFF6F2; --soft: #FFD3CC; --line: #ffffff40; --beam: #ffffff2a; }
-body[data-stage="late"]     { --room: #8E0B10; --ink: #FFF6F2; --soft: #FFC4BB; --line: #ffffff40; --beam: #ff3b3b55; }
+/* The SellerDesk Dark palette (desktop Skin.cs). The clock carries the stage colour; only critical
+   and late turn the whole room red, the same as the desktop critical screen. */
+:root { --room: #1A1B1F; --ink: #ECECEF; --soft: #9A9CA6; --line: #33343A; --clock: #ECECEF; --beam: #A3A5FF1f;
+        --signal: #5E61E6; --signal-ink: #FFFFFF; }
+body[data-stage="calm"]     { --clock: #A3A5FF; }
+body[data-stage="hurry"]    { --clock: #FFC27A; --beam: #FFC27A1f; }
+body[data-stage="critical"] { --room: #6E2530; --ink: #FFFFFF; --soft: #F2DADC; --line: #FFFFFF33; --clock: #FFFFFF; --beam: #A3A5FF33; }
+body[data-stage="late"]     { --room: #4A1820; --ink: #FFFFFF; --soft: #F2DADC; --line: #FFFFFF33; --clock: #FF8B80; --beam: #FF8B8040; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; } /* #lead sets display: flex, which would beat the hidden attribute */
 html, body { height: 100%; margin: 0; }
 body {
   display: grid; grid-template-rows: auto 1fr auto; min-height: 100%;
   background: var(--room); color: var(--ink);
-  font: 400 1.0625rem/1.5 "Atkinson", system-ui, sans-serif;
+  font: 400 1.0625rem/1.5 "Figtree", system-ui, sans-serif;
   transition: background-color 1.2s ease, color 1.2s ease;
   overflow-x: hidden;
 }
@@ -38,8 +41,9 @@ body[data-stage="critical"].ringing #beam, body[data-stage="late"].ringing #beam
 @media (prefers-reduced-motion: reduce) { body.ringing #beam { animation: none; opacity: 0; } body { transition: none; } }
 
 header, main, footer { position: relative; padding-inline: clamp(1.25rem, 4vw, 4rem); }
-header { display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; padding-block: 1.25rem .5rem; }
-.brand { font: 800 1.75rem/1 "Big Shoulders", Impact, sans-serif; letter-spacing: .01em; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; flex-wrap: wrap; padding-block: 1.25rem .5rem; }
+.brand { display: flex; align-items: center; gap: .65rem; font: 700 1.375rem/1 "Figtree", system-ui, sans-serif; }
+.brand svg { width: 2rem; height: 2rem; flex: none; }
 .status { color: var(--soft); text-align: right; }
 .status b { color: var(--ink); font-weight: 700; }
 .status .bad { color: var(--ink); text-decoration: underline; }
@@ -47,23 +51,24 @@ header { display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: 
 main { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding-block: 1rem; }
 #clock {
   font: 800 clamp(7rem, min(31vw, 52vh), 32rem)/.86 "Big Shoulders", Impact, sans-serif;
-  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 0;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 0; color: var(--clock);
+  transition: color 1.2s ease;
 }
-#clock.words { font-size: clamp(5rem, min(20vw, 36vh), 20rem); }
+#clock.words { font-size: clamp(5rem, min(20vw, 36vh), 20rem); color: var(--ink); }
 #lead { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.5rem; margin-top: 1rem; }
 #what { font-size: clamp(1.35rem, 2.6vw, 2.25rem); line-height: 1.2; font-weight: 700; margin: 0; max-width: 36ch; }
 #who { color: var(--soft); margin: .25rem 0 0; }
 
 button, a.action {
-  font: 700 1.0625rem/1 "Atkinson", sans-serif; color: var(--ink); background: none; cursor: pointer;
-  border: 2px solid var(--ink); border-radius: 4px; padding: .7rem 1.1rem; text-decoration: none; display: inline-block;
+  font: 700 1rem/1 "Figtree", system-ui, sans-serif; color: var(--ink); background: none; cursor: pointer;
+  border: 1px solid var(--line); border-radius: 8px; padding: .7rem 1.1rem; text-decoration: none; display: inline-block;
 }
-button.primary { background: var(--ink); color: var(--room); }
-button:hover, a.action:hover { opacity: .82; }
-:is(button, a.action, input):focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+button.primary { background: var(--signal); border-color: var(--signal); color: var(--signal-ink); }
+button:hover, a.action:hover { opacity: .86; }
+:is(button, a.action, input):focus-visible { outline: 2px solid var(--signal); outline-offset: 3px; }
 .actions { display: flex; gap: .6rem; }
 
-#notice { display: none; gap: 1rem; align-items: center; flex-wrap: wrap; margin: 0 0 1rem; padding: .75rem 1rem; border: 2px solid var(--ink); border-radius: 4px; font-weight: 700; }
+#notice { display: none; gap: 1rem; align-items: center; flex-wrap: wrap; margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid var(--line); border-radius: 8px; background: #FFFFFF0d; font-weight: 700; }
 #notice.show { display: flex; }
 
 #queue { list-style: none; margin: 1.75rem 0 0; padding: 0; border-top: 1px solid var(--line); }
@@ -76,13 +81,13 @@ button:hover, a.action:hover { opacity: .82; }
 
 footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; padding-block: 1rem 1.5rem; }
 .money { display: flex; gap: clamp(1.5rem, 5vw, 4rem); }
-.money strong { display: block; font: 800 clamp(2rem, 4vw, 3.25rem)/1 "Big Shoulders", Impact, sans-serif; font-variant-numeric: tabular-nums; }
+.money strong { display: block; font: 700 clamp(1.75rem, 3.4vw, 2.75rem)/1.1 "Figtree", system-ui, sans-serif; font-variant-numeric: tabular-nums; }
 .money span { color: var(--soft); }
 
 #gate { position: fixed; inset: 0; display: none; place-content: center; background: var(--room); padding: 2rem; }
 #gate.show { display: grid; }
 #gate form { display: grid; gap: .75rem; width: min(26rem, 90vw); }
-#gate input { font: inherit; padding: .7rem; border-radius: 4px; border: 2px solid var(--ink); background: none; color: var(--ink); }
+#gate input { font: inherit; padding: .7rem; border-radius: 8px; border: 1px solid var(--line); background: #222327; color: var(--ink); }
 
 @media (max-width: 640px) {
   #queue li { grid-template-columns: 5.5rem minmax(0, 1fr) auto; }
@@ -94,7 +99,7 @@ footer { display: flex; justify-content: space-between; align-items: flex-end; g
 <body data-stage="quiet">
 <div id="beam" aria-hidden="true"></div>
 <header>
-  <div class="brand">SellerDesk</div>
+  <div class="brand"><svg viewBox="0 0 256 256" aria-hidden="true"><rect width="256" height="256" rx="60" fill="#5e61e6"/><path d="M150 80H102a25 25 0 0 0 0 50h52a25 25 0 0 1 0 50H76" fill="none" stroke="#fff" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/><circle cx="200" cy="66" r="22" fill="#d4363c" stroke="#5e61e6" stroke-width="14" paint-order="stroke"/></svg>SellerDesk</div>
   <div class="status" id="status" aria-live="polite">Connecting</div>
 </header>
 <main>

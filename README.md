@@ -12,7 +12,7 @@
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-brightgreen">
 </p>
 
-<p align="center"><img src="docs/assets/dashboard.gif" alt="The SellerDesk dashboard turning from blue to amber to red as a delivery deadline gets close" width="820"></p>
+<p align="center"><img src="docs/assets/dashboard.gif" alt="The SellerDesk server page: the clock turns from indigo to amber, then the room turns red as a delivery deadline gets close" width="820"></p>
 
 ## Pick what you need
 

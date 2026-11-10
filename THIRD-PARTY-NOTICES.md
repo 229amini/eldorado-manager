@@ -43,5 +43,4 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 SIL Open Font License 1.1, full text in `sellerdesk/static/FONT-LICENSES.txt`.
 
 - Big Shoulders Display
-- Atkinson Hyperlegible, Copyright 2020 Braille Institute of America, Inc.
 - Figtree, Copyright 2022 The Figtree Project Authors (https://github.com/erikdkennedy/figtree)

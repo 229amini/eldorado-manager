@@ -42,7 +42,10 @@
             </Grid.RowDefinitions>
 
             <DockPanel LastChildFill="False">
-                <TextBlock x:Name="Brand" Text="SellerDesk" FontFamily="{StaticResource Numbers}" FontSize="34" />
+                <StackPanel Orientation="Horizontal">
+                    <ContentControl Content="{StaticResource Logo}" Width="36" Height="36" Focusable="False" />
+                    <TextBlock x:Name="Brand" Text="SellerDesk" FontSize="26" FontWeight="Bold" Margin="12,0,0,1" VerticalAlignment="Center" />
+                </StackPanel>
                 <TextBlock x:Name="State" DockPanel.Dock="Right" FontSize="24" VerticalAlignment="Center" />
             </DockPanel>
 

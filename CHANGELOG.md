@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.6
+
+- Home: **Set** in Price checks asks once more before it sends. The first click shows **Send** and **Cancel**, so one stray click no longer reprices a live offer.
+- Settings and the alarm screens now carry the SellerDesk logo and Figtree instead of the old wordmark. The volume slider has a round indigo handle, and the main button is indigo in Light too.
+- The server page has the new look: the dark SellerDesk ground, the clock in the stage colour, the room turning red only when time is nearly up, and the logo as its icon. It also no longer shows **Got it** and **Open order** when no order is waiting.
+
 ## 1.6.5
 
 - Settings: a new shared server address or token now restarts an open dashboard. Before, the dashboard kept the server it started with, so Finance said it had no server until the dashboard was closed and opened again.

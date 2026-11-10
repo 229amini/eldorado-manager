@@ -7,6 +7,10 @@
         FontFamily="pack://application:,,,/Fonts/#Figtree" FontSize="15"
         UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
     <Window.Resources>
+      <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="Theme.xaml" />
+        </ResourceDictionary.MergedDictionaries>
         <Style x:Key="Field" TargetType="Control">
             <Setter Property="Foreground" Value="{DynamicResource SkinInk}" />
             <Setter Property="Background" Value="{DynamicResource SkinField}" />
@@ -167,10 +171,10 @@
                                 <RepeatButton Style="{StaticResource Bar}" Background="{DynamicResource SkinFieldLine}" Command="Slider.IncreaseLarge" />
                             </Track.IncreaseRepeatButton>
                             <Track.Thumb>
-                                <Thumb Width="14" Height="22" Cursor="Hand">
+                                <Thumb Width="18" Height="18" Cursor="Hand">
                                     <Thumb.Template>
                                         <ControlTemplate TargetType="Thumb">
-                                            <Border Background="{DynamicResource SkinInk}" />
+                                            <Ellipse Fill="{DynamicResource SkinSignal}" Stroke="{DynamicResource SkinSurface}" StrokeThickness="3" />
                                         </ControlTemplate>
                                     </Thumb.Template>
                                 </Thumb>
@@ -180,6 +184,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+      </ResourceDictionary>
     </Window.Resources>
     <Border Margin="24" CornerRadius="{DynamicResource SkinCorner}" Background="{DynamicResource SkinSurface}"
             BorderBrush="{DynamicResource SkinSurfaceLine}" BorderThickness="1"
@@ -188,8 +193,11 @@
             <DropShadowEffect BlurRadius="28" ShadowDepth="4" Direction="270" Opacity="0.55" Color="Black" />
         </Border.Effect>
         <StackPanel>
-            <TextBlock Text="SellerDesk" Foreground="{DynamicResource SkinInk}" FontSize="36"
-                       FontFamily="pack://application:,,,/Fonts/#Big Shoulders" />
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,8">
+                <ContentControl Content="{StaticResource Logo}" Width="30" Height="30" Focusable="False" />
+                <TextBlock Text="SellerDesk" Foreground="{DynamicResource SkinInk}" FontSize="22" FontWeight="Bold"
+                           Margin="10,0,0,1" VerticalAlignment="Center" />
+            </StackPanel>
 
             <StackPanel x:Name="Tabs" Orientation="Horizontal" Margin="0,4,0,16">
                 <RadioButton x:Name="GeneralTab" Style="{StaticResource Tab}" Content="Look and sound" Checked="PartChanged" />

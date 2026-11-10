@@ -24,7 +24,7 @@ namespace SellerDesk
             Quiet = Hex("#222327"), Error = Hex("#FF8B80"),
         };
 
-        // The critical room stays pale here, so the dark pill and ghost buttons keep their contrast.
+        // The critical room stays pale here, so the indigo pill and the ink ghost button keep their contrast.
         public static readonly Skin Light = new Skin
         {
             Name = "light", Label = "Light",
@@ -33,7 +33,7 @@ namespace SellerDesk
             Room = Hex("#FDE5E7"), LateRoom = Hex("#FBD3D7"), RoomEdge = Hex("#F4BEC4"), Beam = Hex("#C8364A"), Pulse = Hex("#C8364A"),
             ClockTop = Hex("#C8364A"), ClockBottom = Hex("#C8364A"), ClockGlow = Hex("#C8364A"), ClockGlowOpacity = 0, ClockHot = Hex("#7F1D2A"),
             RoomInk = Hex("#1C1D21"), RoomMuted = Hex("#5B2B33"), Vignette = 0.1, Grain = 0,
-            PillFace = Hex("#1C1D21"), PillInk = Hex("#FFFFFF"), GhostInk = Hex("#1C1D21"), GhostFace = Hex("#00000000"), GhostLine = Hex("#1C1D21"),
+            PillFace = Hex("#5658D8"), PillInk = Hex("#FFFFFF"), GhostInk = Hex("#1C1D21"), GhostFace = Hex("#00000000"), GhostLine = Hex("#1C1D21"),
             Corner = 8, Surface = Hex("#F5F5F7"), SurfaceLine = Hex("#E3E3E8"), Field = Hex("#FFFFFF"), FieldLine = Hex("#D4D4DB"),
             Ink = Hex("#1C1D21"), Muted = Hex("#60626B"), Label2 = Hex("#393A41"), Signal = Hex("#5658D8"), SignalInk = Hex("#FFFFFF"),
             Quiet = Hex("#EEEEF1"), Error = Hex("#C8364A"),

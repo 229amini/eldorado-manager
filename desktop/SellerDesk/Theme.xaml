@@ -2,6 +2,17 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <FontFamily x:Key="Numbers">pack://application:,,,/Fonts/#Big Shoulders</FontFamily>
 
+    <!-- desktop\logo.svg drawn in WPF: the S tile with the red ping. Size it with the ContentControl that shows it. -->
+    <Viewbox x:Key="Logo" x:Shared="False">
+        <Canvas Width="256" Height="256">
+            <Rectangle Width="256" Height="256" RadiusX="60" RadiusY="60" Fill="#5E61E6" />
+            <Path Data="M150,80 H102 A25,25 0 0 0 102,130 H154 A25,25 0 0 1 154,180 H76" Stroke="White" StrokeThickness="34"
+                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+            <Ellipse Canvas.Left="171" Canvas.Top="37" Width="58" Height="58" Fill="#5E61E6" />
+            <Ellipse Canvas.Left="178" Canvas.Top="44" Width="44" Height="44" Fill="#D4363C" />
+        </Canvas>
+    </Viewbox>
+
     <Style x:Key="Pill" TargetType="Button">
         <Setter Property="Foreground" Value="{DynamicResource SkinPillInk}" />
         <Setter Property="Background" Value="{DynamicResource SkinPillFace}" />
