@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SellerDesk</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23D4161C'/%3E%3C/svg%3E">
+<style>
+@font-face { font-family: "Big Shoulders"; src: url(big-shoulders-display-latin-800-normal.woff2) format("woff2"); font-weight: 800; font-display: swap; }
+@font-face { font-family: "Atkinson"; src: url(atkinson-hyperlegible-latin-400-normal.woff2) format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "Atkinson"; src: url(atkinson-hyperlegible-latin-700-normal.woff2) format("woff2"); font-weight: 700; font-display: swap; }
+
+/* The room is the status light. Each stage sets the whole palette. */
+:root { --room: #14285C; --ink: #F3F5FF; --soft: #B6C2EC; --line: #ffffff2e; --beam: #ffffff14; }
+body[data-stage="calm"]     { --room: #1E44B8; --ink: #F5F7FF; --soft: #C6D2FA; --line: #ffffff33; --beam: #ffffff1c; }
+body[data-stage="hurry"]    { --room: #F2A900; --ink: #1E1503; --soft: #5A4206; --line: #1e150333; --beam: #ffffff40; }
+body[data-stage="critical"] { --room: #D4161C; --ink: #FFF6F2; --soft: #FFD3CC; --line: #ffffff40; --beam: #ffffff2a; }
+body[data-stage="late"]     { --room: #8E0B10; --ink: #FFF6F2; --soft: #FFC4BB; --line: #ffffff40; --beam: #ff3b3b55; }
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  display: grid; grid-template-rows: auto 1fr auto; min-height: 100%;
+  background: var(--room); color: var(--ink);
+  font: 400 1.0625rem/1.5 "Atkinson", system-ui, sans-serif;
+  transition: background-color 1.2s ease, color 1.2s ease;
+  overflow-x: hidden;
+}
+/* The rotating beam runs only while an alarm waits for an answer. */
+#beam {
+  position: fixed; left: 50%; top: 50%; width: 260vmax; height: 260vmax; margin: -130vmax 0 0 -130vmax;
+  background: conic-gradient(from 0deg, transparent 0 300deg, var(--beam) 345deg, transparent 360deg);
+  pointer-events: none; opacity: 0; transition: opacity .6s;
+}
+body.ringing #beam { opacity: 1; animation: sweep 3.2s linear infinite; }
+body[data-stage="critical"].ringing #beam, body[data-stage="late"].ringing #beam { animation-duration: 1.6s; }
+@keyframes sweep { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { body.ringing #beam { animation: none; opacity: 0; } body { transition: none; } }
+
+header, main, footer { position: relative; padding-inline: clamp(1.25rem, 4vw, 4rem); }
+header { display: flex; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; padding-block: 1.25rem .5rem; }
+.brand { font: 800 1.75rem/1 "Big Shoulders", Impact, sans-serif; letter-spacing: .01em; }
+.status { color: var(--soft); text-align: right; }
+.status b { color: var(--ink); font-weight: 700; }
+.status .bad { color: var(--ink); text-decoration: underline; }
+
+main { display: flex; flex-direction: column; justify-content: center; min-width: 0; padding-block: 1rem; }
+#clock {
+  font: 800 clamp(7rem, min(31vw, 52vh), 32rem)/.86 "Big Shoulders", Impact, sans-serif;
+  font-variant-numeric: tabular-nums; letter-spacing: -.01em; margin: 0;
+}
+#clock.words { font-size: clamp(5rem, min(20vw, 36vh), 20rem); }
+#lead { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.5rem; margin-top: 1rem; }
+#what { font-size: clamp(1.35rem, 2.6vw, 2.25rem); line-height: 1.2; font-weight: 700; margin: 0; max-width: 36ch; }
+#who { color: var(--soft); margin: .25rem 0 0; }
+
+button, a.action {
+  font: 700 1.0625rem/1 "Atkinson", sans-serif; color: var(--ink); background: none; cursor: pointer;
+  border: 2px solid var(--ink); border-radius: 4px; padding: .7rem 1.1rem; text-decoration: none; display: inline-block;
+}
+button.primary { background: var(--ink); color: var(--room); }
+button:hover, a.action:hover { opacity: .82; }
+:is(button, a.action, input):focus-visible { outline: 3px solid var(--ink); outline-offset: 3px; }
+.actions { display: flex; gap: .6rem; }
+
+#notice { display: none; gap: 1rem; align-items: center; flex-wrap: wrap; margin: 0 0 1rem; padding: .75rem 1rem; border: 2px solid var(--ink); border-radius: 4px; font-weight: 700; }
+#notice.show { display: flex; }
+
+#queue { list-style: none; margin: 1.75rem 0 0; padding: 0; border-top: 1px solid var(--line); }
+#queue li { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) auto auto; gap: 1.25rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--line); }
+#queue .left { font: 800 1.75rem/1 "Big Shoulders", Impact, sans-serif; font-variant-numeric: tabular-nums; }
+#queue .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#queue .price { color: var(--soft); }
+#queue button, #queue a.action { padding: .4rem .7rem; font-size: .9375rem; }
+.seen { color: var(--soft); }
+
+footer { display: flex; justify-content: space-between; align-items: flex-end; gap: 2rem; flex-wrap: wrap; padding-block: 1rem 1.5rem; }
+.money { display: flex; gap: clamp(1.5rem, 5vw, 4rem); }
+.money strong { display: block; font: 800 clamp(2rem, 4vw, 3.25rem)/1 "Big Shoulders", Impact, sans-serif; font-variant-numeric: tabular-nums; }
+.money span { color: var(--soft); }
+
+#gate { position: fixed; inset: 0; display: none; place-content: center; background: var(--room); padding: 2rem; }
+#gate.show { display: grid; }
+#gate form { display: grid; gap: .75rem; width: min(26rem, 90vw); }
+#gate input { font: inherit; padding: .7rem; border-radius: 4px; border: 2px solid var(--ink); background: none; color: var(--ink); }
+
+@media (max-width: 640px) {
+  #queue li { grid-template-columns: 5.5rem minmax(0, 1fr) auto; }
+  #queue .price { display: none; }
+  .status { text-align: left; }
+}
+</style>
+</head>
+<body data-stage="quiet">
+<div id="beam" aria-hidden="true"></div>
+<header>
+  <div class="brand">SellerDesk</div>
+  <div class="status" id="status" aria-live="polite">Connecting</div>
+</header>
+<main>
+  <div id="notice" role="alert"><span id="noticeText"></span><button id="online" hidden>Go online</button></div>
+  <p id="clock" role="timer">All quiet</p>
+  <div id="lead" hidden>
+    <div>
+      <p id="what"></p>
+      <p id="who"></p>
+    </div>
+    <div class="actions">
+      <button class="primary" id="ack">Got it</button>
+      <a class="action" id="open" target="_blank" rel="noopener">Open order</a>
+    </div>
+  </div>
+  <ul id="queue" hidden aria-label="Other open orders"></ul>
+</main>
+<footer>
+  <div class="money">
+    <div><strong id="day">0.00</strong><span id="dayLabel">Net, last 24 hours</span></div>
+    <div><strong id="week">0.00</strong><span id="weekLabel">Net, last 7 days</span></div>
+  </div>
+  <button id="sound" aria-pressed="false">Turn sound on</button>
+</footer>
+<div id="gate">
+  <form>
+    <label for="token">Enter your dashboard token</label>
+    <input id="token" type="password" autocomplete="current-password" required>
+    <button class="primary">Unlock</button>
+  </form>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let state = null, skew = 0, soundOn = false, audio = null, lastBeep = 0;
+const token = () => localStorage.getItem("managerToken") || "";
+const headers = () => (token() ? { Authorization: `Bearer ${token()}` } : {});
+const now = () => Date.now() / 1000 + skew;
+
+function stageOf(order) {
+  if (!state || order.deadline == null || !order.window) return "calm";
+  const left = order.deadline - now();
+  if (left <= 0) return "late";
+  const share = left / order.window;
+  return share <= state.critical_at ? "critical" : share <= state.hurry_at ? "hurry" : "calm";
+}
+
+function clock(seconds) {
+  const late = seconds < 0, s = Math.abs(Math.trunc(seconds));
+  const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60);
+  const two = (n) => String(n).padStart(2, "0");
+  const text = d ? `${d}d ${two(h)}h` : h ? `${h}:${two(m)}:${two(s % 60)}` : `${two(m)}:${two(s % 60)}`;
+  return late ? `+${text}` : text;
+}
+
+function money(value) {
+  return value == null ? "No data" : `$${value.toFixed(2)}`;
+}
+
+function describe(order) {
+  const parts = [order.title];
+  if (order.quantity > 1) parts.push(`x${order.quantity}`);
+  return parts.join(" ");
+}
+
+function paint() {
+  if (!state) return;
+  const orders = state.orders;
+  const ringing = orders.some((o) => !o.acked);
+  const top = orders[0];
+  document.body.classList.toggle("ringing", ringing);
+  document.body.dataset.stage = top ? stageOf(top) : "quiet";
+  const big = $("clock");
+
+  if (top) {
+    const timed = top.deadline != null;
+    big.textContent = timed ? clock(top.deadline - now()) : "New order";
+    big.classList.toggle("words", !timed);
+    document.title = `${timed ? clock(top.deadline - now()) : "New order"} SellerDesk`;
+    $("lead").hidden = false;
+    $("what").textContent = describe(top);
+    $("who").textContent = [top.price != null ? `${top.price.toFixed(2)} ${top.currency}` : "", top.buyer && `from ${top.buyer}`].filter(Boolean).join(", ");
+    $("ack").hidden = top.acked;
+    $("ack").dataset.id = top.id;
+    $("open").href = top.url;
+  } else {
+    big.textContent = "All quiet";
+    big.classList.add("words");
+    document.title = "SellerDesk";
+    $("lead").hidden = true;
+  }
+
+  const rest = orders.slice(1);
+  $("queue").hidden = !rest.length;
+  $("queue").replaceChildren(...rest.map((o) => {
+    const li = document.createElement("li");
+    const left = document.createElement("span");
+    left.className = "left";
+    left.textContent = o.deadline != null ? clock(o.deadline - now()) : "Open";
+    const title = document.createElement("span");
+    title.className = "title";
+    title.textContent = describe(o);
+    const price = document.createElement("span");
+    price.className = "price";
+    price.textContent = o.price != null ? `${o.price.toFixed(2)} ${o.currency}` : "";
+    const act = document.createElement(o.acked ? "span" : "button");
+    act.textContent = o.acked ? "Seen" : "Got it";
+    if (o.acked) act.className = "seen"; else act.onclick = () => ack(o.id);
+    li.append(left, title, price, act);
+    return li;
+  }));
+
+  if (ringing && soundOn && Date.now() - lastBeep > 2600) { lastBeep = Date.now(); wail(); }
+
+  const ago = state.last_poll ? Math.max(0, Math.round(now() - state.last_poll)) : null;
+  const broken = state.channels.filter((c) => c.ok === false).map((c) => c.name);
+  const names = state.channels.map((c) => c.name).join(", ");
+  $("status").textContent = "";
+  const check = document.createElement("b");
+  check.textContent = ago == null ? "Waiting for the first check" : `Checked ${ago} s ago`;
+  $("status").append(check, names ? ` and alerting ${names}` : ". No alert channels set up");
+  if (broken.length) {
+    const bad = document.createElement("div");
+    bad.className = "bad";
+    bad.textContent = `Can't reach ${broken.join(", ")}`;
+    $("status").append(bad);
+  }
+
+  const tripped = state.deadman.tripped;
+  $("notice").classList.toggle("show", tripped || !!state.last_error);
+  $("online").hidden = !tripped;
+  $("noticeText").textContent = tripped
+    ? `You are offline. SellerDesk switched you off after an alarm went unanswered for ${state.deadman.minutes} minutes.`
+    : state.last_error ? `SellerDesk can't reach Eldorado. Orders may be waiting. ${state.last_error}` : "";
+
+  const sales = state.sales;
+  $("day").textContent = money(sales.day);
+  $("week").textContent = money(sales.week);
+  $("dayLabel").textContent = `Net, last 24 hours, ${sales.day_count} orders`;
+  $("weekLabel").textContent = `Net, last 7 days, ${sales.week_count} orders`;
+}
+
+async function refresh() {
+  try {
+    const response = await fetch("api/state", { headers: headers() });
+    if (response.status === 401) { $("gate").classList.add("show"); return; }
+    $("gate").classList.remove("show");
+    state = await response.json();
+    skew = state.now - Date.now() / 1000;
+    paint();
+  } catch {
+    $("status").textContent = "Dashboard lost contact with SellerDesk. Retrying.";
+  }
+}
+
+async function post(path) {
+  await fetch(path, { method: "POST", headers: { ...headers(), "X-Manager": "1" } });
+  setTimeout(refresh, 400);
+}
+function ack(id) {
+  const order = state.orders.find((o) => o.id === id);
+  if (order) order.acked = true;
+  paint();
+  post(`api/ack/${encodeURIComponent(id)}`);
+}
+
+function wail() {
+  audio = audio || new AudioContext();
+  const osc = audio.createOscillator(), gain = audio.createGain(), t = audio.currentTime;
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(520, t);
+  osc.frequency.linearRampToValueAtTime(1040, t + 0.9);
+  osc.frequency.linearRampToValueAtTime(520, t + 1.8);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.18, t + 0.1);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+  osc.connect(gain).connect(audio.destination);
+  osc.start(t);
+  osc.stop(t + 1.9);
+}
+
+$("ack").onclick = (event) => ack(event.currentTarget.dataset.id);
+$("online").onclick = () => post("api/online");
+$("sound").onclick = (event) => {
+  soundOn = !soundOn;
+  event.currentTarget.textContent = soundOn ? "Turn sound off" : "Turn sound on";
+  event.currentTarget.setAttribute("aria-pressed", soundOn);
+  if (soundOn) { audio = audio || new AudioContext(); audio.resume(); }
+};
+document.querySelector("#gate form").onsubmit = (event) => {
+  event.preventDefault();
+  localStorage.setItem("managerToken", $("token").value);
+  refresh();
+};
+
+refresh();
+setInterval(refresh, 3000);
+setInterval(paint, 1000);
+</script>
+</body>
+</html>

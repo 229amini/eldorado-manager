@@ -1,5 +1,5 @@
-# docker compose up -d                  Eldorado Manager alone (Telegram, Discord, Pushover or ntfy.sh)
-# docker compose --profile ntfy up -d   Eldorado Manager plus your own ntfy server
+# docker compose up -d                  SellerDesk alone (Telegram, Discord, Pushover or ntfy.sh)
+# docker compose --profile ntfy up -d   SellerDesk plus your own ntfy server
 
 x-hardening: &hardening
   read_only: true
@@ -12,19 +12,19 @@ x-hardening: &hardening
     options: { max-size: "10m", max-file: "3" }
 
 services:
-  manager:
+  sellerdesk:
     <<: *hardening
     build:
       context: .
       args:
         PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-alpine}
-    image: eldorado-manager:local
-    container_name: eldorado-manager
+    image: sellerdesk:local
+    container_name: sellerdesk
     env_file: .env
     environment:
       DASHBOARD_PORT: "8787"
     volumes:
-      - manager-data:/data
+      - sellerdesk-data:/data
     ports:
       - "127.0.0.1:${DASHBOARD_HOST_PORT:-8787}:8787"   # localhost only; see docs/deployment.md
     pids_limit: 64
@@ -35,7 +35,7 @@ services:
     <<: *hardening
     profiles: ["ntfy"]
     image: ${NTFY_IMAGE:-binwiederhier/ntfy:v2.37.0}
-    container_name: eldorado-manager-ntfy
+    container_name: sellerdesk-ntfy
     command: serve
     user: "10001:10001"
     environment:
@@ -50,5 +50,5 @@ services:
     cpus: 0.5
 
 volumes:
-  manager-data:
+  sellerdesk-data:
   ntfy-data:

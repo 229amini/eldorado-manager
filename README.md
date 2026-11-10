@@ -1,18 +1,18 @@
-<h1 align="center">Eldorado Manager</h1>
+<h1 align="center">SellerDesk</h1>
 
 <p align="center">
   Eldorado.gg has no webhooks and easy-to-miss notifications.<br>
-  Eldorado Manager rings your phone and PC on every order, and shows you where your shop stands.
+  SellerDesk rings your phone and PC on every order, and shows you where your shop stands.
 </p>
 
 <p align="center">
-  <a href="https://github.com/229amini/eldorado-manager/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/229amini/eldorado-manager/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/229amini/eldorado-manager/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/229amini/eldorado-manager"></a>
+  <a href="https://github.com/229amini/sellerdesk/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/229amini/sellerdesk/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/229amini/sellerdesk/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/229amini/sellerdesk"></a>
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-blue"></a>
   <img alt="Zero dependencies" src="https://img.shields.io/badge/dependencies-0-brightgreen">
 </p>
 
-<p align="center"><img src="docs/assets/dashboard.gif" alt="The Eldorado Manager dashboard turning from blue to amber to red as a delivery deadline gets close" width="820"></p>
+<p align="center"><img src="docs/assets/dashboard.gif" alt="The SellerDesk dashboard turning from blue to amber to red as a delivery deadline gets close" width="820"></p>
 
 ## Pick what you need
 
@@ -22,26 +22,26 @@
 | Phone, watch and PC alarms | [Server](#set-up-the-server) | A machine that stays on, with Docker |
 | Both | Both | Both |
 
-Everything runs on your own machines. Eldorado Manager has no account to sign up for and no service of its own.
+Everything runs on your own machines. SellerDesk has no account to sign up for and no service of its own.
 
 ## Alarms
 
 A buyer pays. Within 30 seconds your phone rings, your watch buzzes, a red window opens on your PC, and your second monitor counts down to the delivery deadline. Tap **Got it** on any device and the rest go silent.
 
-- **The alarm knows your deadline.** Eldorado Manager reads each offer's guaranteed delivery time. A 20 minute order rings harder than a 7 day order, and it speeds up as time runs out.
-- **Got it means "I saw this", and Eldorado Manager remembers.** Answer the alarm and it stays silent until the order enters its last 20%. If you forgot, it comes back.
+- **The alarm knows your deadline.** SellerDesk reads each offer's guaranteed delivery time. A 20 minute order rings harder than a 7 day order, and it speeds up as time runs out.
+- **Got it means "I saw this", and SellerDesk remembers.** Answer the alarm and it stays silent until the order enters its last 20%. If you forgot, it comes back.
 - **Pick your channels.** ntfy, Telegram, Discord and Pushover work today. A new channel takes about 20 lines of Python.
 - **The dashboard reads from across the room.** The whole page changes color with your most urgent order, and a beam sweeps the screen until someone answers.
-- **The dead-man switch protects your rating.** Asleep with an unanswered alarm? Eldorado Manager can take you offline so no more orders land on you. It stays off until you enable it.
-- **Eldorado Manager tells you when it breaks.** If it can't reach Eldorado for 10 minutes, or your credential expires, you get a full-volume alert.
+- **The dead-man switch protects your rating.** Asleep with an unanswered alarm? SellerDesk can take you offline so no more orders land on you. It stays off until you enable it.
+- **SellerDesk tells you when it breaks.** If it can't reach Eldorado for 10 minutes, or your credential expires, you get a full-volume alert.
 
 The server runs on the Python standard library. No packages, no database, 128 MB of memory.
 
 ## Windows app
 
-<p align="center"><img src="docs/assets/app-offers.png" alt="The Eldorado Manager dashboard: offers with their place on the site, price rank and stock, next to a comparison with the top sellers" width="820"></p>
+<p align="center"><img src="docs/assets/app-offers.png" alt="The SellerDesk dashboard: offers with their place on the site, price rank and stock, next to a comparison with the top sellers" width="820"></p>
 
-1. Download [EldoradoManagerSetup.exe](https://github.com/229amini/eldorado-manager/releases/latest) and double-click it. It needs no admin rights and no Python.
+1. Download [SellerDeskSetup.exe](https://github.com/229amini/sellerdesk/releases/latest) and double-click it. It needs no admin rights and no Python.
 2. Windows may warn about an unknown app, because the installer has no paid certificate. Click **More info**, then **Run anyway**.
 3. Create a key on [Dashboard > Seller API](https://www.eldorado.gg/dashboard/seller-api), and paste it under **Eldorado key** in Settings.
 
@@ -60,9 +60,9 @@ You then get:
 You don't need an account or credentials for this.
 
 ```sh
-git clone https://github.com/229amini/eldorado-manager.git
-cd eldorado-manager
-python -m eldorado_manager demo --scene critical
+git clone https://github.com/229amini/sellerdesk.git
+cd sellerdesk
+python -m sellerdesk demo --scene critical
 ```
 
 Open <http://127.0.0.1:8787>. Other scenes: `quiet`, `calm`, `hurry`, `late`. Click **Got it** to stop the beam.
@@ -78,7 +78,7 @@ You need a machine that stays on, such as a small VPS, and Docker.
    ```
 3. Test everything. This reads your account and changes nothing:
    ```sh
-   docker compose run --rm manager python -m eldorado_manager check
+   docker compose run --rm sellerdesk python -m sellerdesk check
    ```
 4. Start it:
    ```sh
@@ -98,7 +98,7 @@ For the PC alarm, install the [Windows app](#windows-app) and enter your ntfy ad
 | Critical | Last 20% | Red | 15 s |
 | Late | Past the deadline | Dark red | 15 s |
 
-A 7 day order would ring for days at those rates, so each stage gets a 30 minute budget. After that Eldorado Manager goes quiet until the next stage starts. You can change all of these numbers: see [Configuration](docs/configuration.md).
+A 7 day order would ring for days at those rates, so each stage gets a 30 minute budget. After that SellerDesk goes quiet until the next stage starts. You can change all of these numbers: see [Configuration](docs/configuration.md).
 
 ## Documentation
 
@@ -117,7 +117,7 @@ The server reads your orders and notifications. It never delivers, cancels or ed
 
 The Windows dashboard can change your account, and only when you tell it to: prices, stock, pausing, delivery time, Mark delivered and Extend. Nothing changes on a timer, and order actions ask twice.
 
-Your credentials stay on your own machines: in `.env` for the server, encrypted with your Windows account for the app. Eldorado Manager sends data only to Eldorado and the channels you configure. See [SECURITY.md](SECURITY.md).
+Your credentials stay on your own machines: in `.env` for the server, encrypted with your Windows account for the app. SellerDesk sends data only to Eldorado and the channels you configure. See [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
@@ -135,4 +135,4 @@ Includes:
 
 Full notices: [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
 
-Eldorado Manager is an independent project, and Eldorado.gg does not build, endorse or support it.
+SellerDesk is an independent project, and Eldorado.gg does not build, endorse or support it.

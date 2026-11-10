@@ -36,11 +36,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## Dynamic Island for Windows
 
-[zab1yak/dynamic-island-windows](https://github.com/zab1yak/dynamic-island-windows), MIT license. Adapted in `desktop/EldoradoManager/Spring.cs` and `desktop/EldoradoManager/IslandShape.cs`.
+[zab1yak/dynamic-island-windows](https://github.com/zab1yak/dynamic-island-windows), MIT license. Adapted in `desktop/SellerDesk/Spring.cs` and `desktop/SellerDesk/IslandShape.cs`.
 
 ## Fonts
 
-SIL Open Font License 1.1, full text in `eldorado_manager/static/FONT-LICENSES.txt`.
+SIL Open Font License 1.1, full text in `sellerdesk/static/FONT-LICENSES.txt`.
 
 - Big Shoulders Display
 - Atkinson Hyperlegible, Copyright 2020 Braille Institute of America, Inc.

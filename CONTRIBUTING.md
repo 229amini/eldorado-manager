@@ -6,7 +6,7 @@ You need Python 3.11 or newer. There's nothing to install.
 
 ```sh
 python -m unittest discover -s tests -t .   # tests
-python -m eldorado_manager demo --scene hurry          # dashboard on a fake account
+python -m sellerdesk demo --scene hurry          # dashboard on a fake account
 ```
 
 The Windows app needs the .NET SDK on Windows:
@@ -15,7 +15,7 @@ The Windows app needs the .NET SDK on Windows:
 powershell -ExecutionPolicy Bypass -File desktop\build.ps1
 ```
 
-To work on its dashboard page without an Eldorado key, open `desktop/EldoradoManager/Web/index.html#dark` in a browser. It loads made-up data from `sample.js`.
+To work on its dashboard page without an Eldorado key, open `desktop/SellerDesk/Web/index.html#dark` in a browser. It loads made-up data from `sample.js`.
 
 ## Rules for changes
 
@@ -31,7 +31,7 @@ To work on its dashboard page without an Eldorado key, open `desktop/EldoradoMan
 
 ## Report an API change
 
-If Eldorado changes a field and Eldorado Manager breaks, open an issue with the error from `docker compose logs manager`. Remove buyer names and order ids first.
+If Eldorado changes a field and SellerDesk breaks, open an issue with the error from `docker compose logs sellerdesk`. Remove buyer names and order ids first.
 
 ## Security
 

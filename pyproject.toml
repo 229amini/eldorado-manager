@@ -1,5 +1,5 @@
 [project]
-name = "eldorado-manager"
+name = "sellerdesk"
 description = "Order alarms for Eldorado.gg sellers: phone, watch, desktop and a live dashboard."
 readme = "README.md"
 license = { text = "MIT" }
@@ -8,17 +8,17 @@ dynamic = ["version"]
 dependencies = []
 
 [project.scripts]
-eldorado-manager = "eldorado_manager.__main__:main"
+sellerdesk = "sellerdesk.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["eldorado_manager"]
+packages = ["sellerdesk"]
 
 [tool.setuptools.dynamic]
-version = { attr = "eldorado_manager.__version__" }
+version = { attr = "sellerdesk.__version__" }
 
 [tool.setuptools.package-data]
-eldorado_manager = ["static/*"]
+sellerdesk = ["static/*"]

@@ -6,6 +6,7 @@ __pycache__/
 desktop/.build-venv/
 desktop/build/
 desktop/dist/
-desktop/EldoradoManager/bin/
-desktop/EldoradoManager/obj/
+desktop/SellerDesk/bin/
+desktop/SellerDesk/obj/
 .impeccable/
+*.egg-info/

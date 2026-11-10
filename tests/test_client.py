@@ -1,10 +1,10 @@
 import json
 import unittest
 
-from eldorado_manager.channels import Alert, Discord, Ntfy, Pushover, Telegram, Webhook, build_channels
-from eldorado_manager.config import Settings
-from eldorado_manager.eldorado import EldoradoClient, Notice, Order
-from eldorado_manager.net import HttpError
+from sellerdesk.channels import Alert, Discord, Ntfy, Pushover, Telegram, Webhook, build_channels
+from sellerdesk.config import Settings
+from sellerdesk.eldorado import EldoradoClient, Notice, Order
+from sellerdesk.net import HttpError
 
 RAW_ORDER = {
     "id": "abc", "purchaseQuantity": 2, "buyerUsername": "bob",
@@ -153,7 +153,7 @@ class WebhookChannel(unittest.TestCase):
         self.assertTrue(self.sent(alert)[0]["ring"])
 
     def test_skips_the_startup_note_and_the_hurry_stage(self):
-        self.assertEqual(self.sent(Alert("system", 2, "Eldorado Manager is on watch", "")), [])
+        self.assertEqual(self.sent(Alert("system", 2, "SellerDesk is on watch", "")), [])
         self.assertEqual(self.sent(Alert("order", 5, "x", "", None, "o1", False, 1.0, 1, "Deliver soon")), [])
 
     def test_a_notice_is_a_plain_notification(self):

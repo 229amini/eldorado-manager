@@ -5,9 +5,9 @@ import socket
 import tempfile
 import unittest
 
-from eldorado_manager import dashboard
-from eldorado_manager.ledger import Ledger
-from eldorado_manager.market import empty_snapshot
+from sellerdesk import dashboard
+from sellerdesk.ledger import Ledger
+from sellerdesk.market import empty_snapshot
 
 
 class FakeEngine:

@@ -10,21 +10,21 @@
                             Dashboard  <-----  your browser
 ```
 
-Eldorado's Seller API has no webhooks, so Eldorado Manager polls it. Answers travel back the other way: the ntfy and Telegram channels hand the engine the order ids you acknowledged.
+Eldorado's Seller API has no webhooks, so SellerDesk polls it. Answers travel back the other way: the ntfy and Telegram channels hand the engine the order ids you acknowledged.
 
 ## Code map
 
 | File | Job |
 |---|---|
-| `eldorado_manager/engine.py` | The poll loop and every alarm decision. Start reading here |
-| `eldorado_manager/deadline.py` | Delivery windows, stages and repeat rates. Pure functions |
-| `eldorado_manager/eldorado.py` | API client and the `Order` and `Notice` models |
-| `eldorado_manager/channels.py` | Alert delivery |
-| `eldorado_manager/dashboard.py` | The web server |
-| `eldorado_manager/static/index.html` | The whole dashboard: one page, no build step |
-| `eldorado_manager/demo.py` | The fake account behind `eldorado-manager demo` |
-| `eldorado_manager/config.py` | Environment variables |
-| `desktop/EldoradoManager/` | The Windows app and installer in one exe. See [below](#windows-app) |
+| `sellerdesk/engine.py` | The poll loop and every alarm decision. Start reading here |
+| `sellerdesk/deadline.py` | Delivery windows, stages and repeat rates. Pure functions |
+| `sellerdesk/eldorado.py` | API client and the `Order` and `Notice` models |
+| `sellerdesk/channels.py` | Alert delivery |
+| `sellerdesk/dashboard.py` | The web server |
+| `sellerdesk/static/index.html` | The whole dashboard: one page, no build step |
+| `sellerdesk/demo.py` | The fake account behind `sellerdesk demo` |
+| `sellerdesk/config.py` | Environment variables |
+| `desktop/SellerDesk/` | The Windows app and installer in one exe. See [below](#windows-app) |
 
 ## One poll
 
@@ -52,8 +52,8 @@ Each open order has one alarm record:
 
 | Field | Meaning |
 |---|---|
-| `first` | When Eldorado Manager first saw the order |
-| `last` | When Eldorado Manager last alerted |
+| `first` | When SellerDesk first saw the order |
+| `last` | When SellerDesk last alerted |
 | `stage` | Highest stage reached |
 | `stage_since` | When that stage started, for the repeat budget |
 | `acked_stage` | Stage you answered at, or `None` |
@@ -73,7 +73,7 @@ Things the Swagger page doesn't tell you:
 - Date fields can carry 7 fractional digits, more than Python's parser accepted before 3.11.
 - Tokens last 15 minutes. `EldoradoClient` renews them 60 seconds early and retries once on a `401`.
 - `GET currency-management/me/offers` takes its filter as a JSON body, and `augmentedGameFilter` needs a `gameId` and a `category`. There is no call for all your currency offers, so the dashboard asks once for each game your item offers are in. A seller with currency offers only won't see them yet.
-- The public currency listing ignores the price sort, and it mixes offers priced per 1K and per 1M. Eldorado Manager walks all of it and compares only offers with your unit.
+- The public currency listing ignores the price sort, and it mixes offers priced per 1K and per 1M. SellerDesk walks all of it and compares only offers with your unit.
 
 - `sold-order-data` lists `Completed` orders only, about 5 days after the sale, and dates them by completion. The Windows app counts sales from `orders/me/seller/orders` by the day the buyer paid, and takes only cleared net income and fees from the CSV.
 - Eldorado's `orderCounts` field comes back empty on your offers and on public ones, so no call tells you how much another seller sold.

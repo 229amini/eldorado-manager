@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.6.0
+
+- The app is now called **SellerDesk**. Installing 1.6.0 moves your settings, seller key, history and market data over from Eldorado Manager and removes the old app, so there is nothing to set up again.
+- A new look: calmer greys, thin borders, a new font and a new logo, in both Dark and Light.
+- Server: the Python package and the compose service are both called `sellerdesk` now. If you have your own `docker-compose.override.yml`, rename the service there too.
+
 ## 1.5.0
 
 - Windows: a **Home** tab opens first, with today's sales, what needs you now, price checks and items worth adding

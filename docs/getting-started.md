@@ -7,22 +7,22 @@ If you only want the shop dashboard on Windows, you can skip all of this. Go to 
 ## What you need
 
 - A verified Eldorado seller account.
-- A machine that stays on. A small Linux VPS works well. Your own PC works too, but Eldorado Manager stops when the PC sleeps.
+- A machine that stays on. A small Linux VPS works well. Your own PC works too, but SellerDesk stops when the PC sleeps.
 - Docker with the compose plugin. To run without Docker, see [Deployment](deployment.md).
 
 ## 1. Get your Eldorado credential
 
 1. Open [Dashboard > Seller API](https://www.eldorado.gg/dashboard/seller-api).
-2. Name the credential `Eldorado Manager` and pick an expiry. The longest option is 365 days.
+2. Name the credential `SellerDesk` and pick an expiry. The longest option is 365 days.
 3. Click **Generate credentials** and copy the Client ID and Client secret.
 
-Eldorado shows the secret once. When the credential expires, Eldorado Manager sends you a full-volume alert and you generate a new one.
+Eldorado shows the secret once. When the credential expires, SellerDesk sends you a full-volume alert and you generate a new one.
 
-## 2. Download Eldorado Manager and add your settings
+## 2. Download SellerDesk and add your settings
 
 ```sh
-git clone https://github.com/229amini/eldorado-manager.git
-cd eldorado-manager
+git clone https://github.com/229amini/sellerdesk.git
+cd sellerdesk
 cp .env.example .env
 chmod 600 .env
 ```
@@ -53,7 +53,7 @@ Your order titles and buyer names pass through that public server. For privacy, 
 ## 4. Test it
 
 ```sh
-docker compose run --rm manager python -m eldorado_manager check
+docker compose run --rm sellerdesk python -m sellerdesk check
 ```
 
 You should see your order counts, and your phone should ring with a test alert. This command changes nothing on your account.
@@ -64,7 +64,7 @@ If a line says `FAILED`, it names the reason. A `401` from Eldorado means the Cl
 
 ```sh
 docker compose up -d
-docker compose logs -f manager
+docker compose logs -f sellerdesk
 ```
 
 Open <http://127.0.0.1:8787> on that machine to see the dashboard. To reach it from elsewhere, read [Deployment](deployment.md#reach-the-dashboard-from-another-device).
@@ -76,9 +76,9 @@ Android keeps killing background apps unless you tell it not to. On your phone:
 1. Open the app's system settings and allow notifications at the highest level.
 2. Turn on **Autostart**, if your phone has that option. Xiaomi, Oppo and Vivo phones do.
 3. Set the battery setting to **Unrestricted** or **No restrictions**.
-4. In ntfy settings, turn off **Keep alerting for highest priority**. Eldorado Manager repeats the alert until you answer, so you don't need it, and ntfy's loop keeps ringing after you tap **Got it**.
+4. In ntfy settings, turn off **Keep alerting for highest priority**. SellerDesk repeats the alert until you answer, so you don't need it, and ntfy's loop keeps ringing after you tap **Got it**.
 
-Tap **Got it** to stop the alarm on every device. Tapping the notification itself silences that one ring, and Eldorado Manager rings again on its next repeat. **Open** takes you to the order on Eldorado.
+Tap **Got it** to stop the alarm on every device. Tapping the notification itself silences that one ring, and SellerDesk rings again on its next repeat. **Open** takes you to the order on Eldorado.
 
 ## 7. Get it on your watch
 
@@ -93,8 +93,8 @@ Your watch shows what your phone shows, so you only need to allow one app:
 
 ## 8. Add the PC alarm
 
-Download `EldoradoManagerSetup.exe` from the [latest release](https://github.com/229amini/eldorado-manager/releases/latest) and run it. Under **Alarm server**, enter the same ntfy address and topic you put in `.env`. Add your Eldorado key under **Eldorado key** and you get the shop dashboard too. See [Windows app](desktop.md).
+Download `SellerDeskSetup.exe` from the [latest release](https://github.com/229amini/sellerdesk/releases/latest) and run it. Under **Alarm server**, enter the same ntfy address and topic you put in `.env`. Add your Eldorado key under **Eldorado key** and you get the shop dashboard too. See [Windows app](desktop.md).
 
 ## You're done
 
-Eldorado Manager sends "Eldorado Manager is on watch" each time it starts. Place a cheap test order from a second account, or wait for a real one.
+SellerDesk sends "SellerDesk is on watch" each time it starts. Place a cheap test order from a second account, or wait for a real one.

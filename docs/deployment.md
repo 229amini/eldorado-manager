@@ -3,8 +3,8 @@
 ## Docker
 
 ```sh
-docker compose up -d                  # Eldorado Manager alone
-docker compose --profile ntfy up -d   # Eldorado Manager and a private ntfy server
+docker compose up -d                  # SellerDesk alone
+docker compose --profile ntfy up -d   # SellerDesk and a private ntfy server
 ```
 
 The containers run as a non-root user on a read-only filesystem, with all Linux capabilities dropped and memory limits set. Both publish their ports on `127.0.0.1` only.
@@ -16,31 +16,31 @@ git pull
 docker compose up -d --build
 ```
 
-Eldorado Manager keeps its state in a Docker volume, so a rebuild doesn't repeat old alerts.
+SellerDesk keeps its state in a Docker volume, so a rebuild doesn't repeat old alerts.
 
 ## Without Docker
 
-Eldorado Manager needs Python 3.11 or newer and nothing else.
+SellerDesk needs Python 3.11 or newer and nothing else.
 
 ```sh
 set -a; . ./.env; set +a
-STATE_FILE=./state.json python -m eldorado_manager run
+STATE_FILE=./state.json python -m sellerdesk run
 ```
 
 For a service that survives reboots, use this systemd unit:
 
 ```ini
 [Unit]
-Description=Eldorado Manager
+Description=SellerDesk
 After=network-online.target
 
 [Service]
-User=eldorado-manager
-WorkingDirectory=/opt/eldorado-manager
-EnvironmentFile=/opt/eldorado-manager/.env
-Environment=STATE_FILE=/var/lib/eldorado-manager/state.json
-StateDirectory=eldorado-manager
-ExecStart=/usr/bin/python3 -m eldorado_manager run
+User=sellerdesk
+WorkingDirectory=/opt/sellerdesk
+EnvironmentFile=/opt/sellerdesk/.env
+Environment=STATE_FILE=/var/lib/sellerdesk/state.json
+StateDirectory=sellerdesk
+ExecStart=/usr/bin/python3 -m sellerdesk run
 Restart=always
 
 [Install]
@@ -51,7 +51,7 @@ WantedBy=multi-user.target
 
 Your order details then stay on your server.
 
-1. In `.env`, set the address your phone will use, and the address Eldorado Manager uses inside Docker:
+1. In `.env`, set the address your phone will use, and the address SellerDesk uses inside Docker:
 
    ```sh
    NTFY_PUBLIC_URL=https://ntfy.example.com
@@ -64,11 +64,11 @@ Your order details then stay on your server.
    ```sh
    docker compose --profile ntfy create ntfy
    docker run --rm --user 0 --entrypoint chown \
-     -v eldorado-manager_ntfy-data:/data binwiederhier/ntfy:v2.37.0 -R 10001:10001 /data
+     -v sellerdesk_ntfy-data:/data binwiederhier/ntfy:v2.37.0 -R 10001:10001 /data
    docker compose --profile ntfy up -d ntfy
    ```
 
-3. Create a user for your phone, and a limited one for Eldorado Manager:
+3. Create a user for your phone, and a limited one for SellerDesk:
 
    ```sh
    docker compose exec ntfy ntfy user add phone
@@ -84,7 +84,7 @@ Your order details then stay on your server.
    docker compose --profile ntfy up -d
    ```
 
-Keep the Eldorado Manager user non-admin. Eldorado Manager puts its token inside each alert so the "Got it" button can publish, which means anyone who can read the topic can read that token.
+Keep the SellerDesk user non-admin. SellerDesk puts its token inside each alert so the "Got it" button can publish, which means anyone who can read the topic can read that token.
 
 ntfy needs HTTPS in front of it, or your token travels in clear text. See the next section.
 
@@ -144,4 +144,4 @@ Then compare the result with the digest of that tag on Docker Hub, from any conn
 
 ## Backups
 
-The only state worth keeping is `.env`. Eldorado Manager rebuilds the rest on its next check.
+The only state worth keeping is `.env`. SellerDesk rebuilds the rest on its next check.

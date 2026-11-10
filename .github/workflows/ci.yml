@@ -22,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: docker build -t manager-ci .
-      - run: docker run --rm manager-ci python -m eldorado_manager --version
+      - run: docker build -t sellerdesk-ci .
+      - run: docker run --rm sellerdesk-ci python -m sellerdesk --version
 
   installer:
     runs-on: windows-latest

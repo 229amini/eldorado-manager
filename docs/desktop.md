@@ -2,7 +2,7 @@
 
 One installer gives you two things:
 
-- **The alarm.** A red window opens above your game and an alarm sound loops until you answer. It listens to your [Eldorado Manager server](getting-started.md) through ntfy.
+- **The alarm.** A red window opens above your game and an alarm sound loops until you answer. It listens to your [SellerDesk server](getting-started.md) through ntfy.
 - **The dashboard.** Your whole shop in one window: offers, rank against other sellers, orders, sales and insights. It talks to Eldorado with your own Seller API key.
 
 Use both, or either one alone. The dashboard needs no server.
@@ -10,7 +10,7 @@ Use both, or either one alone. The dashboard needs no server.
 | You want | You need |
 |---|---|
 | Dashboard only | This app and an Eldorado Seller API key |
-| PC alarm | This app, plus a running Eldorado Manager server with ntfy as a channel |
+| PC alarm | This app, plus a running SellerDesk server with ntfy as a channel |
 | Both | All of the above |
 
 The alarm won't hear Telegram, Discord or Pushover alerts. It listens to ntfy only.
@@ -19,16 +19,16 @@ The alarm won't hear Telegram, Discord or Pushover alerts. It listens to ntfy on
 
 You need Windows 10 or 11. You don't need admin rights or Python.
 
-1. Download `EldoradoManagerSetup.exe` from the [latest release](https://github.com/229amini/eldorado-manager/releases/latest).
+1. Download `SellerDeskSetup.exe` from the [latest release](https://github.com/229amini/sellerdesk/releases/latest).
 2. Double-click it.
-3. Windows may warn that it doesn't recognize the app, because the installer has no paid code-signing certificate. Click **More info**, then **Run anyway**. The source is in [`desktop/EldoradoManager`](../desktop/EldoradoManager), and you can [build it yourself](#build-it-yourself).
+3. Windows may warn that it doesn't recognize the app, because the installer has no paid code-signing certificate. Click **More info**, then **Run anyway**. The source is in [`desktop/SellerDesk`](../desktop/SellerDesk), and you can [build it yourself](#build-it-yourself).
 4. Fill in Settings. It opens by itself the first time.
 
-To update, run the new `EldoradoManagerSetup.exe` over the old one. Your settings stay. Version 1.2.0 and older installed under an older name; the new installer moves your settings and data over and removes the old app.
+To update, run the new `SellerDeskSetup.exe` over the old one. Your settings stay. Version 1.2.0 and older installed under an older name; the new installer moves your settings and data over and removes the old app.
 
 ## First-time settings
 
-Fill in one tab or both, then click **Save and start**. Eldorado Manager tests each connection before it saves.
+Fill in one tab or both, then click **Save and start**. SellerDesk tests each connection before it saves.
 
 **Alarm server**, for the PC alarm. Enter the same ntfy address, topic and token as your server's `.env`. For the dashboard alone, leave the topic empty.
 
@@ -36,13 +36,13 @@ Fill in one tab or both, then click **Save and start**. Eldorado Manager tests e
 
 1. Open [Dashboard > Seller API](https://www.eldorado.gg/dashboard/seller-api) on Eldorado.
 2. Name the credential and pick an expiry. The longest option is 365 days.
-3. Click **Generate credentials**, then copy the Client ID and Client secret into Eldorado Manager.
+3. Click **Generate credentials**, then copy the Client ID and Client secret into SellerDesk.
 
-Eldorado shows the secret once. Eldorado Manager encrypts it with your Windows account, so another user or a copied config file can't read it. This key can change your prices, so treat it like a password.
+Eldorado shows the secret once. SellerDesk encrypts it with your Windows account, so another user or a copied config file can't read it. This key can change your prices, so treat it like a password.
 
-After that, the alarm starts each time you sign in. Open the dashboard from the Start menu: **Eldorado Manager**. Repeat these steps on each PC you use.
+After that, the alarm starts each time you sign in. Open the dashboard from the Start menu: **SellerDesk**. Repeat these steps on each PC you use.
 
-**Shared server**, at the bottom of the Eldorado key tab. If you run the Eldorado Manager server, enter its API address and its `DASHBOARD_TOKEN`. Your server then reads the market once for all your PCs, and the **Finance** tab keeps one ledger they all share. Leave it empty and each PC reads the market itself, which can run into Eldorado's rate limit once two or three PCs are open. [Deployment](deployment.md#share-the-api-with-the-windows-app) shows how to publish the API.
+**Shared server**, at the bottom of the Eldorado key tab. If you run the SellerDesk server, enter its API address and its `DASHBOARD_TOKEN`. Your server then reads the market once for all your PCs, and the **Finance** tab keeps one ledger they all share. Leave it empty and each PC reads the market itself, which can run into Eldorado's rate limit once two or three PCs are open. [Deployment](deployment.md#share-the-api-with-the-windows-app) shows how to publish the API.
 
 ## Answer an alarm
 
@@ -74,7 +74,7 @@ Each offer takes one row:
 - **Price rank** counts sellers by price alone. The two often disagree: Eldorado doesn't rank by price.
 - **Sold 30 d** comes from your order list.
 
-Type a new price or stock on the row. Eldorado Manager sends it 6 seconds after your last change, or right away when you press Enter. A price change over 50% asks you to confirm.
+Type a new price or stock on the row. SellerDesk sends it 6 seconds after your last change, or right away when you press Enter. A price change over 50% asks you to confirm.
 
 If Eldorado refuses an edit, the row turns red and keeps the value you typed. A line under it gives Eldorado's reason, with **Send again** and **Discard my change**. When the reason is the rate limit, the app sends it again every 90 seconds until it lands. After a save, the app reads your offers again and checks the new price is there. If Eldorado still shows the old one, the row turns red too.
 
@@ -127,14 +127,14 @@ A share counts the money after Eldorado's fee, not the order total. Eldorado's o
 ![The Insights tab: suggestions, a chart of sales by hour, and a table of what sells on the market](assets/app-insights.png)
 
 - **Top cards** show money lost to late delivery, your real delivery time against your promise, repeat buyers and reviews.
-- **Worth doing** suggests moves, such as a price with room to rise or stock about to run out. Eldorado Manager changes nothing by itself.
+- **Worth doing** suggests moves, such as a price with room to rise or stock about to run out. SellerDesk changes nothing by itself.
 - **When buyers buy** charts sales and late cancellations by hour, in your local time.
 - **Selling on the market** estimates demand. See the next section.
 - **What your price changes did** compares place and sales before and after each change. It needs a few days of data.
 
 ### How the market estimate works
 
-Eldorado publishes no sales numbers per item. So every 30 minutes Eldorado Manager reads the first 1,500 public offers of each listing you sell in, and counts each time another seller's stock falls.
+Eldorado publishes no sales numbers per item. So every 30 minutes SellerDesk reads the first 1,500 public offers of each listing you sell in, and counts each time another seller's stock falls.
 
 Each row shows the cheapest price listed right now, and two numbers from the falls themselves:
 
@@ -143,15 +143,15 @@ Each row shows the cheapest price listed right now, and two numbers from the fal
 
 Both start empty and fill in after the second check.
 
-Read it as a hint. Stock also falls when a seller edits it by hand, and Eldorado Manager sees only the top of a large listing. The list labels itself **Early** until it has a few days of data. Without a shared server it keeps collecting while the alarm runs on this PC, even with the dashboard closed. With one, the server collects for all your PCs around the clock.
+Read it as a hint. Stock also falls when a seller edits it by hand, and SellerDesk sees only the top of a large listing. The list labels itself **Early** until it has a few days of data. Without a shared server it keeps collecting while the alarm runs on this PC, even with the dashboard closed. With one, the server collects for all your PCs around the clock.
 
 ## Change settings
 
-Click **Settings** in the dashboard, or open **Eldorado Manager settings** from the Start menu. The moon and sun button switches between Dark and Light.
+Click **Settings** in the dashboard, or open **SellerDesk settings** from the Start menu. The moon and sun button switches between Dark and Light.
 
 The dashboard picks its size from your screen, larger on a 1440p or 4K monitor. Press Ctrl and + or - to change it, and Ctrl and 0 to go back. Each PC keeps its own size.
 
-To use your own alarm sound, add a path to a `.wav` file as `"sound"` in `%LOCALAPPDATA%\EldoradoManager\config.json`, then restart the app.
+To use your own alarm sound, add a path to a `.wav` file as `"sound"` in `%LOCALAPPDATA%\SellerDesk\config.json`, then restart the app.
 
 ## Known limits
 
@@ -163,11 +163,11 @@ To use your own alarm sound, add a path to a `.wav` file as `"sound"` in `%LOCAL
 
 ## Uninstall
 
-Open **Settings > Apps > Installed apps**, find **Eldorado Manager**, and click **Uninstall**. That removes the app, its settings and its log.
+Open **Settings > Apps > Installed apps**, find **SellerDesk**, and click **Uninstall**. That removes the app, its settings and its log.
 
 ## Troubleshooting
 
-Eldorado Manager writes a log to `%LOCALAPPDATA%\EldoradoManager\manager.log`.
+SellerDesk writes a log to `%LOCALAPPDATA%\SellerDesk\sellerdesk.log`.
 
 | What you see | What to do |
 |---|---|
@@ -175,7 +175,7 @@ Eldorado Manager writes a log to `%LOCALAPPDATA%\EldoradoManager\manager.log`.
 | `connected`, but no alarm | The app's topic differs from `NTFY_TOPIC` on your server |
 | Dashboard says it needs WebView2 | Install the [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/). Windows 11 has it already |
 | `401` from Eldorado | The key has a typo or has expired. Generate a new one and enter it under **Eldorado key** |
-| `429` from Eldorado | You've hit Eldorado's rate limit. Eldorado Manager slows down, so wait a few minutes |
+| `429` from Eldorado | You've hit Eldorado's rate limit. SellerDesk slows down, so wait a few minutes |
 | A price is refused | Eldorado takes 2 decimals, or up to 5 below 0.01 |
 | The taskbar shows an old icon after an update | Sign out of Windows and back in |
 
@@ -187,4 +187,4 @@ You need the [.NET SDK](https://dotnet.microsoft.com/download) and the .NET Fram
 powershell -ExecutionPolicy Bypass -File desktop\build.ps1
 ```
 
-The result is `desktop\dist\EldoradoManagerSetup.exe`. On a tagged release, GitHub Actions runs this same script and attaches the exe.
+The result is `desktop\dist\SellerDeskSetup.exe`. On a tagged release, GitHub Actions runs this same script and attaches the exe.

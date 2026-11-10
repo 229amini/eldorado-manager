@@ -1,6 +1,6 @@
 # Channels
 
-Eldorado Manager sends to each channel you configure in `.env`. You can run several at once.
+SellerDesk sends to each channel you configure in `.env`. You can run several at once.
 
 | Channel | Cost | Repeats alarms | Got it button |
 |---|---|---|---|
@@ -21,9 +21,9 @@ NTFY_TOPIC=a-long-random-name
 NTFY_TOKEN=            # only for a server with login
 ```
 
-Eldorado Manager also uses a second topic, `<NTFY_TOPIC>-ack`, for answers. If your server has access control, grant the token read and write on both. A wildcard such as `eldorado*` covers them.
+SellerDesk also uses a second topic, `<NTFY_TOPIC>-ack`, for answers. If your server has access control, grant the token read and write on both. A wildcard such as `eldorado*` covers them.
 
-If your phone reaches ntfy at a different address than Eldorado Manager does, set `NTFY_PUBLIC_URL` to the address the phone uses.
+If your phone reaches ntfy at a different address than SellerDesk does, set `NTFY_PUBLIC_URL` to the address the phone uses.
 
 ## Telegram
 
@@ -36,7 +36,7 @@ TELEGRAM_BOT_TOKEN=123456:abc
 TELEGRAM_CHAT_ID=987654
 ```
 
-Eldorado Manager accepts button taps from that chat alone.
+SellerDesk accepts button taps from that chat alone.
 
 ## Discord
 
@@ -46,7 +46,7 @@ In your server: **Server Settings > Integrations > Webhooks > New Webhook**. Cop
 DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 ```
 
-Top-level alerts mention `@here`. Eldorado Manager skips repeats on Discord so your channel stays readable.
+Top-level alerts mention `@here`. SellerDesk skips repeats on Discord so your channel stays readable.
 
 ## Pushover
 
@@ -59,7 +59,7 @@ PUSHOVER_USER_KEY=...
 
 ## Webhook
 
-Send alerts to your own alert server as JSON. Eldorado Manager posts when an order opens, when it reaches its last minutes and when it closes. Your server handles any repeats.
+Send alerts to your own alert server as JSON. SellerDesk posts when an order opens, when it reaches its last minutes and when it closes. Your server handles any repeats.
 
 ```sh
 WEBHOOK_URL=https://alerts.example.com/events
@@ -73,11 +73,11 @@ An order alert looks like this. `key` is the order id, and `ring` is `true` when
  "deadline": 1793976194.0, "window": 1200, "level": 5, "style": "call", "ring": false}
 ```
 
-When the order closes, Eldorado Manager posts `{"key": "...", "resolved": true}`.
+When the order closes, SellerDesk posts `{"key": "...", "resolved": true}`.
 
 ## Write your own channel
 
-Add a class to `eldorado_manager/channels.py`, then register it in `build_channels()`. This one posts to Slack:
+Add a class to `sellerdesk/channels.py`, then register it in `build_channels()`. This one posts to Slack:
 
 ```python
 class Slack(Channel):
@@ -103,6 +103,6 @@ Each `Alert` carries:
 | `ack_id` | Order id if this alert can take an answer |
 | `repeat` | `True` when this repeats an earlier alert |
 
-If your channel can take answers, add `poll_acks()` and return the order ids people acknowledged. Eldorado Manager calls it on each check. See `Telegram` for a working example.
+If your channel can take answers, add `poll_acks()` and return the order ids people acknowledged. SellerDesk calls it on each check. See `Telegram` for a working example.
 
 Pass `transport` as an argument, as the example does, so your tests can run without a network. `tests/test_client.py` shows how.

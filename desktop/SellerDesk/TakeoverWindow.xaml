@@ -1,0 +1,84 @@
+<Window x:Class="SellerDesk.TakeoverWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:SellerDesk"
+        Title="SellerDesk"
+        WindowStyle="None" ResizeMode="NoResize" Background="Black"
+        ShowInTaskbar="False" Topmost="True"
+        FontFamily="pack://application:,,,/Fonts/#Hind"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
+    <Window.Resources>
+        <ResourceDictionary Source="Theme.xaml" />
+    </Window.Resources>
+
+    <!-- An opaque window, so the GPU draws it directly. A transparent window at this size can't hold
+         the frame rate. Shot holds a picture of the desktop for the island to grow over. -->
+    <Grid x:Name="Room">
+        <Image x:Name="Shot" Stretch="Fill" />
+        <Path x:Name="Body" />
+
+        <!-- The lamp hangs just above the top edge, where the island was. -->
+        <Canvas x:Name="Light" IsHitTestVisible="False" ClipToBounds="True" Opacity="0">
+            <!-- The room breathes with the alarm. Both repeat every 1.2 s. -->
+            <Rectangle x:Name="Pulse" Opacity="0" />
+            <Image x:Name="Beam" Stretch="Fill" Opacity="0.6" RenderOptions.BitmapScalingMode="Linear" />
+            <Ellipse x:Name="Lamp" />
+        </Canvas>
+
+        <Rectangle x:Name="Vignette" IsHitTestVisible="False" Opacity="0">
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="0.5,0.45" GradientOrigin="0.5,0.45" RadiusX="0.75" RadiusY="0.8">
+                    <GradientStop Color="#00000000" Offset="0.45" />
+                    <GradientStop Color="#C8000000" Offset="1" />
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <Grid x:Name="Info" Opacity="0" Margin="72,44,72,56">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <DockPanel LastChildFill="False">
+                <TextBlock x:Name="Brand" Text="SellerDesk" FontFamily="{StaticResource Numbers}" FontSize="34" />
+                <TextBlock x:Name="State" DockPanel.Dock="Right" FontSize="24" VerticalAlignment="Center" />
+            </DockPanel>
+
+            <!-- Three copies of the clock: its glow, the red numerals, and white numerals that show
+                 only where the beam falls on them. -->
+            <Grid Grid.Row="1" Margin="0,8">
+                <Viewbox>
+                    <local:Digits x:Name="ClockGlow" Size="300">
+                        <local:Digits.Effect>
+                            <BlurEffect Radius="34" RenderingBias="Performance" />
+                        </local:Digits.Effect>
+                    </local:Digits>
+                </Viewbox>
+                <Viewbox>
+                    <local:Digits x:Name="Clock" Size="300" />
+                </Viewbox>
+                <Grid x:Name="Hot">
+                    <Viewbox>
+                        <local:Digits x:Name="ClockHot" Size="300" />
+                    </Viewbox>
+                </Grid>
+            </Grid>
+
+            <DockPanel Grid.Row="2">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Bottom">
+                    <Button x:Name="OpenButton" Style="{StaticResource Ghost}" Content="Open order" FontSize="22"
+                            Padding="30,16" Margin="0,0,14,0" Click="OnOpen" />
+                    <Button Style="{StaticResource Pill}" Content="Got it" FontSize="22" Padding="42,16" Click="OnAnswer" />
+                </StackPanel>
+                <StackPanel VerticalAlignment="Bottom" Margin="0,0,24,0">
+                    <TextBlock x:Name="OrderTitle" FontSize="58" FontWeight="Bold" TextTrimming="CharacterEllipsis" />
+                    <TextBlock x:Name="Detail" FontSize="26" Margin="0,6,0,0" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </DockPanel>
+        </Grid>
+
+        <Rectangle x:Name="Grain" IsHitTestVisible="False" Opacity="0.035" />
+    </Grid>
+</Window>

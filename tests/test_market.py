@@ -5,8 +5,8 @@ import unittest
 import urllib.parse
 from datetime import datetime, timedelta, timezone
 
-from eldorado_manager.config import Settings
-from eldorado_manager.market import (BIGGEST_FALL, MAX_PAGES, Listed, MarketApi, MarketError, MarketHub, Offer,
+from sellerdesk.config import Settings
+from sellerdesk.market import (BIGGEST_FALL, MAX_PAGES, Listed, MarketApi, MarketError, MarketHub, Offer,
                                      filter_of, new_watched, span_minutes, take, to_offer)
 
 NOW = datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)

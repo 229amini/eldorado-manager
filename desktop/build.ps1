@@ -1,4 +1,4 @@
-# Builds dist\EldoradoManagerSetup.exe, the one-file Windows installer. It is the app itself: run from
+# Builds dist\SellerDeskSetup.exe, the one-file Windows installer. It is the app itself: run from
 # anywhere, the exe installs itself. Needs the .NET SDK, and the .NET Framework 4.8 targeting pack.
 # Run: powershell -ExecutionPolicy Bypass -File desktop\build.ps1
 # Keep this file pure ASCII: PowerShell 5.1 reads BOM-less scripts as ANSI.
@@ -7,9 +7,9 @@ $ErrorActionPreference = 'Stop'
 $here = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $here
 
-dotnet build EldoradoManager\EldoradoManager.csproj -c Release -o build
+dotnet build SellerDesk\SellerDesk.csproj -c Release -o build
 if ($LASTEXITCODE -ne 0) { throw 'dotnet build failed' }
 
 New-Item -ItemType Directory -Force dist | Out-Null
-Copy-Item build\EldoradoManager.exe dist\EldoradoManagerSetup.exe -Force
-Get-Item dist\EldoradoManagerSetup.exe | Select-Object Name, Length
+Copy-Item build\SellerDesk.exe dist\SellerDeskSetup.exe -Force
+Get-Item dist\SellerDeskSetup.exe | Select-Object Name, Length

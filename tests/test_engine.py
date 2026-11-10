@@ -1,10 +1,10 @@
 import unittest
 
-from eldorado_manager.channels import Alert, Channel
-from eldorado_manager.config import Settings
-from eldorado_manager.deadline import Stage, parse_time, repeat_interval, stage_for
-from eldorado_manager.eldorado import Notice, Order
-from eldorado_manager.engine import Engine
+from sellerdesk.channels import Alert, Channel
+from sellerdesk.config import Settings
+from sellerdesk.deadline import Stage, parse_time, repeat_interval, stage_for
+from sellerdesk.eldorado import Notice, Order
+from sellerdesk.engine import Engine
 
 
 class FakeClock:

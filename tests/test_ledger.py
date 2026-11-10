@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from datetime import datetime, timezone
 
-from eldorado_manager.ledger import Conflict, Ledger, NotFound, fee_rates, parse_sales
+from sellerdesk.ledger import Conflict, Ledger, NotFound, fee_rates, parse_sales
 
 CSV_HEAD = "﻿Order Date,Description,Amount $,Seller Fees $,Net Income $,Category\n"
 
