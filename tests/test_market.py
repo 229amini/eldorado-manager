@@ -201,6 +201,24 @@ class Transport(unittest.TestCase):
         market.sweep("g", "CustomItem", 1)
         self.assertEqual(clock.slept, [1.5, 30])
 
+    def test_a_read_that_cannot_reach_eldorado_goes_again(self):
+        clock = Clock()
+        down = MarketError("Can't reach Eldorado. [Errno -3] Try again")
+        market, transport = api({"/api/v1/item-management/offers": [down, down, page([]), down, down, down]}, clock)
+        market.sweep("g", "CustomItem", 1)
+        self.assertEqual(len(transport.calls), 3)
+        self.assertIn(5, clock.slept)
+        self.assertIn(20, clock.slept)
+        with self.assertRaises(MarketError):
+            market.sweep("g", "CustomItem", 1)  # three failures in a row: it gives up
+        self.assertEqual(len(transport.calls), 6)
+
+    def test_a_refused_read_is_not_repeated(self):
+        market, transport = api({"/api/v1/item-management/offers": [MarketError("no", 404), page([])]})
+        with self.assertRaises(MarketError):
+            market.sweep("g", "CustomItem", 1)
+        self.assertEqual(len(transport.calls), 1)
+
     def test_currency_offers_are_a_get_with_a_body_and_signed(self):
         mine = page([{"id": "o1", "gameId": "g", "category": "CustomItem", "offerState": "Active",
                       "pricePerUnit": {"amount": 1, "currency": "USD"}, "quantity": 3}])

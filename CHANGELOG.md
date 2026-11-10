@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Server: a market read that fails to reach Eldorado (a DNS hiccup or a dropped connection) goes again after 5 and then 20 seconds. Before, one such page threw away the whole half-hourly sweep, and on a flaky link no sweep finished for hours.
+
 ## 1.6.3
 
 - SellerDesk updates itself. When a newer version is out, a line at the top of the dashboard says so, with **What's new** and **Update now**. One click downloads it, checks it against GitHub's SHA-256 checksum, installs it and opens the dashboard again, with your settings and data kept. Versions before 1.6.3 have to install this one by hand.

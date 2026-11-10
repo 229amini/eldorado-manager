@@ -36,6 +36,7 @@ MY_CURRENCY = "/api/v1/currency-management/me/offers"
 SOLD = "/api/v1/orders/me"
 TOP_RIVALS = 5
 CALL_GAP_SECONDS = 1.5
+READ_RETRY_SECONDS = (5, 20)  # pauses before a failed read goes again, for network failures only
 DEFAULT_HOLD_SECONDS = 60
 
 SWEEP_PAGES = 30
@@ -438,7 +439,17 @@ class MarketApi:
             return self._once(method, path, body, signed)
 
     def _read(self, path, query, signed) -> dict:
-        reply = self._call("GET", path + "?" + urllib.parse.urlencode(query), None, signed)
+        # A lookup that fails to resolve or drops the connection goes again after a pause: from the host's
+        # network that happens a few times an hour, and one such page used to throw away a whole sweep.
+        # Reads only; a write that may have landed is never repeated.
+        for wait in (*READ_RETRY_SECONDS, None):
+            try:
+                reply = self._call("GET", path + "?" + urllib.parse.urlencode(query), None, signed)
+                break
+            except MarketError as error:
+                if error.status != 0 or wait is None:
+                    raise
+                self._sleep(wait)
         try:
             parsed = json.loads(reply or "{}")
         except ValueError as error:
