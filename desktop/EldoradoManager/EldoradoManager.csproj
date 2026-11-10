@@ -9,7 +9,7 @@
     <Nullable>disable</Nullable>
     <AssemblyName>EldoradoManager</AssemblyName>
     <RootNamespace>EldoradoManager</RootNamespace>
-    <Version>1.4.0</Version>
+    <Version>1.5.0</Version>
     <Product>Eldorado Manager</Product>
     <Description>Order alarms and a shop dashboard for Eldorado.gg sellers</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -24,6 +24,8 @@
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" GeneratePathProperty="true" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
     <Reference Include="System.Security" />
     <Reference Include="System.Web" />
     <Reference Include="System.Web.Extensions" />

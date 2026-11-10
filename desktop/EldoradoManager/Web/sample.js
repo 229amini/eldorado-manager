@@ -97,7 +97,36 @@
       },
     },
     bulkNote: '', bulkBusy: false,
+    hub: !location.search.includes('nohub'),
+    pricing: {
+      1: { low: 0.01, sales: 14, soldAt: 0.06, average: 0.064, from: 0.04, to: 0.09, topPrice: 0.05, topSeller: 'QuickLoot', topSales: 6, topLink: '/x/oi/1', units: 220, verdict: 'fair', suggest: 0.06, advice: 'You’re inside the range most sales happened in, 0.04 to 0.09.' },
+      3: { low: 0.05, sales: 9, soldAt: 0.22, average: 0.21, from: 0.15, to: 0.3, topPrice: 0.2, topSeller: 'ArcDepot', topSales: 4, topLink: '/x/oi/3', units: 60, verdict: 'low', suggest: 0.22, advice: 'Most sales happened between 0.15 and 0.30, and you’re below all of that. 0.22 sits in the middle of them.' },
+      7: { low: 0.07, sales: 2, soldAt: 0.06, average: 0.06, from: 0.05, to: 0.06, topPrice: 0.05, topSeller: 'sora', topSales: 2, topLink: '/x/oi/7', units: 5, verdict: 'few', advice: 'Only 2 sales seen this week, too few to suggest a price.' },
+      5: { low: 0.31, sales: 0 },
+    },
+    customers: {
+      days: 90, buyers: 36, repeat: 5, repeatShare: 31, average: 7.76, gap: '4.5 days', newThisWeek: 6,
+      grid: Array.from({ length: 7 }, (_, d) => Array.from({ length: 24 }, (_, hr) => Math.max(0, Math.round((hr < 5 ? 4 : hr > 18 ? 3 : 1) + Math.sin(d + hr) * 2)))),
+      top: [
+        { name: 'lunatrade', orders: 6, units: 12000, spent: 70.8, first: now - 60 * 864e5, last: now - 864e5, items: ['Arc Raiders Coins'], problems: ['1 dispute'], every: '9 days' },
+        { name: 'marko_77', orders: 4, units: 40, spent: 18.2, first: now - 30 * 864e5, last: now - 2 * 864e5, items: ['Plasma Core', 'Copper Coil'], problems: [], every: '6 days' },
+        { name: 'sora', orders: 1, units: 3, spent: 0.33, first: now - 5 * 864e5, last: now - 5 * 864e5, items: ['Heavy Fuze'], problems: [], every: '' },
+      ],
+      trouble: [{ name: 'hana', orders: 1, units: 5, spent: 1.1, first: now - 9 * 864e5, last: now - 9 * 864e5, items: ['Arc Cell'], problems: ['1 bad review'], every: '' }],
+      pairs: [{ a: 'Copper Coil', b: 'Plasma Core', buyers: 3 }, { a: 'Arc Cell', b: 'Night Visor', buyers: 2 }],
+    },
+    finance: {
+      ready: true, note: '', busy: false,
+      ledger: {
+        revision: 4,
+        people: [{ id: 'p1', name: 'Reza', note: 'Pays by card', archived: false }, { id: 'p2', name: 'Sara', note: '', archived: false }],
+        orders: { o5: { title: 'Arc Cell', placed: new Date(now - 3600000).toISOString(), quantity: 5, total: 1.1, currency: 'USD', category: 'CustomItem', net: 0.93, netExact: true, shares: [{ person: 'p1', units: 3 }, { person: 'p2', units: 2 }] } },
+        payments: [{ id: 'y1', person: 'p1', amount: 0.2, date: '2026-11-08', note: 'Card' }],
+        summary: [{ person: 'p1', units: 3, earned: 0.56, paid: 0.2, balance: 0.36, orders: 1 }, { person: 'p2', units: 2, earned: 0.37, paid: 0, balance: 0.37, orders: 1 }],
+      },
+    },
   };
+  for (const o of state.orders) Object.assign(o, { amount: parseFloat(o.total), currency: 'USD', sale: o.state !== 'Canceled' });
   const find = id => state.offers.find(o => o.id === id);
   const fields = { Price: ['priceDraft', 'pendingPrice'], Stock: ['stockDraft', 'pendingStock'] };
   window.sampleLog = [];
@@ -115,7 +144,19 @@
     if (type === 'cancel' && o) {
       o.pendingPrice = o.pendingStock = false;
       o.note = '';
+      o.unsaved = null;
     }
+    if (type === 'retry' && o) o.unsaved = null;
+    if (type === 'retryAll') state.offers.forEach(x => { x.unsaved = null; });
+    state.unsaved = state.offers.filter(x => x.unsaved).length;
+    const book = state.finance.ledger;
+    if (type === 'addPerson') book.people.push({ id: 'p' + (book.people.length + 1), name: data.name, note: data.note, archived: false });
+    if (type === 'assign') {
+      const o = state.orders.find(x => x.id === data.order);
+      if (data.shares.length) book.orders[o.id] = { title: o.title, placed: new Date(o.placed).toISOString(), quantity: o.quantity, total: o.amount, currency: 'USD', category: 'CustomItem', net: +(o.amount * 0.85).toFixed(2), netExact: false, shares: data.shares };
+      else delete book.orders[o.id];
+    }
+    if (type === 'addPayment') book.payments.push({ id: 'y' + Date.now(), person: data.person, amount: +data.amount, date: data.date, note: data.note });
     if (type === 'theme') state.theme = data.value;
     if (type === 'sort') state.sort = data.value;
     if (type === 'sortFlip') {
@@ -127,5 +168,10 @@
     if (type === 'salesDays') state.sales.days = data.days;
     window.managerState(state);
   };
+  // One refused price, so the red row can be reviewed.
+  if (state.offers[1]) {
+    Object.assign(state.offers[1], { priceDraft: '0.07', pendingPrice: true, unsaved: 'Eldorado asked for fewer requests. Wait a minute and try again. Trying again at 04:05.' });
+    state.unsaved = 1;
+  }
   window.managerState(state);
 }());

@@ -10,7 +10,9 @@ namespace EldoradoManager
     /// <summary>One line of the dashboard. Draft values hold what you typed until Eldorado accepts it.</summary>
     public sealed class OfferRow : INotifyPropertyChanged
     {
+        private const int VerifyGraceSeconds = 15;
         private string priceDraft = "", quantityDraft = "", note = "", insight = "";
+        private string unsaved;
         private string priceRank = "Checking", lowest = "", cheaper = "";
         private double livePrice;
         private bool needsConfirm;
@@ -49,6 +51,13 @@ namespace EldoradoManager
         public double LivePrice { get => livePrice; set => Set(ref livePrice, value); }
         public string Note { get => note; set => Set(ref note, value); }
         public bool NeedsConfirm { get => needsConfirm; set => Set(ref needsConfirm, value); }
+
+        /// <summary>Why your edit isn't on Eldorado. The row stays red, with your value kept, until it is.</summary>
+        public string Unsaved { get => unsaved; set => Set(ref unsaved, value); }
+
+        /// <summary>A price Eldorado accepted, kept until a later read of your offers shows it.</summary>
+        public double? SentPrice;
+        public DateTime SentAt;
         public double? UndoPrice { get => undoPrice; set => Set(ref undoPrice, value); }
         public string State { get => state; set => Set(ref state, value); }
         public bool IsListed => state == "Active";
@@ -57,13 +66,29 @@ namespace EldoradoManager
         private bool CanToggle => IsListed || state == "Paused";
 
         /// <summary>Takes fresh server values, except fields you are editing right now.</summary>
-        public void Sync(Offer offer, bool everything)
+        public void Sync(Offer offer, bool everything, DateTime? readAt = null)
         {
             Offer = offer;
             State = offer.State;
             LivePrice = offer.Price;
+            if (readAt != null) Verify(offer, readAt.Value);
             if (everything || PendingPrice == null) PriceDraft = FormatPrice(offer.Price);
             if (everything || PendingQuantity == null) QuantityDraft = offer.Quantity.ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>
+        /// A 200 on a write isn't proof: a read started after it has to show the new price. The grace covers a
+        /// read that was already on its way, so a slow refresh doesn't raise a false alarm.
+        /// </summary>
+        private void Verify(Offer offer, DateTime readAt)
+        {
+            if (SentPrice == null || readAt < SentAt.AddSeconds(VerifyGraceSeconds)) return;
+            var sent = SentPrice.Value;
+            SentPrice = null;
+            if (Math.Abs(offer.Price - sent) < 0.00001) return;
+            PendingPrice = sent;
+            PriceDraft = FormatPrice(sent);
+            Unsaved = $"Eldorado still shows {FormatPrice(offer.Price)}, not your {FormatPrice(sent)}. Send it again or discard.";
         }
 
         public void Apply(Standing standing)
@@ -179,6 +204,8 @@ namespace EldoradoManager
             ["rivals"] = RivalsToWeb(),
             ["pendingPrice"] = PendingPrice != null,
             ["pendingStock"] = PendingQuantity != null,
+            ["unsaved"] = unsaved,
+            ["checking"] = SentPrice != null,
             ["picture"] = Offer.Picture,
             ["largePicture"] = Offer.LargePicture.Length > 0 ? Offer.LargePicture : Offer.Picture,
             ["currency"] = Offer.Currency,

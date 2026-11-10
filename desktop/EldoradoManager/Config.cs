@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Net;
 using System.Security.Cryptography;
@@ -25,9 +26,13 @@ namespace EldoradoManager
         public string Theme = "dark";   // a Skin name
         public string SellerId = "";
         public string SellerSecret = "";   // stored encrypted for this Windows user
+        public string HubUrl = "";         // your own server, which reads the market once for every PC
+        public string HubToken = "";       // its DASHBOARD_TOKEN, stored encrypted like the seller secret
+        public double Zoom;                // 0 picks a size from the screen
 
         public string AckTopic => Topic + "-ack";
         public bool HasSellerKey => SellerId.Length > 0 && SellerSecret.Length > 0;
+        public bool HasHub => HubUrl.Length > 0;
         public bool HasAlarms => Topic.Length > 0;
         public bool IsSetUp => HasAlarms || HasSellerKey;   // the dashboard works with no alarm server
 
@@ -50,6 +55,9 @@ namespace EldoradoManager
                     Theme = Get("theme").Length > 0 ? Get("theme") : new Config().Theme,
                     SellerId = Get("sellerId"),
                     SellerSecret = Unprotect(Get("sellerSecret")),
+                    HubUrl = Get("hubUrl").TrimEnd('/'),
+                    HubToken = Unprotect(Get("hubToken")),
+                    Zoom = double.TryParse(Get("zoom"), NumberStyles.Float, CultureInfo.InvariantCulture, out var zoom) ? zoom : 0,
                 };
             }
             catch (Exception)
@@ -72,6 +80,9 @@ namespace EldoradoManager
                 ["theme"] = Theme,
                 ["sellerId"] = SellerId,
                 ["sellerSecret"] = Protect(SellerSecret),
+                ["hubUrl"] = HubUrl,
+                ["hubToken"] = Protect(HubToken),
+                ["zoom"] = Zoom.ToString(CultureInfo.InvariantCulture),
             };
             File.WriteAllText(ConfigPath, new JavaScriptSerializer().Serialize(values));
         }

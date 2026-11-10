@@ -107,6 +107,24 @@ Set `DASHBOARD_TOKEN` to a long random string first. Then pick one:
 
 The dashboard asks for the token once and keeps it in that browser.
 
+## Share the API with the Windows app
+
+The Windows app reads the market and the Finance ledger from your server when you give it the server's address and `DASHBOARD_TOKEN`. It only needs the `/api/` paths, so publish those alone over HTTPS. With nginx, add this to the `server` block that already serves your HTTPS name:
+
+```nginx
+location ^~ /manager/api/ {
+    proxy_pass http://127.0.0.1:8787/api/;
+    proxy_http_version 1.1;
+    client_max_body_size 64k;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+```
+
+Run `nginx -t`, reload nginx, then enter `https://your-name/manager` as the server address in the Windows app. Set `DASHBOARD_TOKEN` before you publish: without it the server answers 403 to every market and ledger request. The token sits in the app's settings, encrypted with your Windows account.
+
+The market hub calls Eldorado about once every 1.5 seconds while it reads, and holds off for as long as Eldorado asks when it hits the rate limit. Turn it off with `MARKET_ENABLED=false` if you only want alarms.
+
 ## Where Docker Hub is blocked
 
 Docker Hub refuses connections from some countries, including Iran. Point the build at a mirror:

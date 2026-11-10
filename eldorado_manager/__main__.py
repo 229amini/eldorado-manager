@@ -13,6 +13,8 @@ from .config import Settings
 from .demo import SCENES, ConsoleChannel, DemoApi
 from .eldorado import EldoradoClient
 from .engine import Engine, load_state, save_state
+from .ledger import Ledger
+from .market import MarketApi, MarketHub
 
 log = logging.getLogger("eldorado_manager")
 
@@ -29,8 +31,16 @@ def run(settings: Settings) -> None:
     if not channels:
         log.warning("no alert channel configured: Eldorado Manager will only update the dashboard")
     engine = Engine(api, channels, settings, load_state(settings.state_file))
+    # The hub and the ledger job get their own token and call gate, so they never slow the alarm loop.
+    market_api = MarketApi(settings.base_url, settings.client_id, settings.client_secret)
+    hub = MarketHub(market_api, settings, settings.market_file) if settings.market_enabled else None
+    if hub:
+        hub.start()
+    ledger = Ledger(settings.ledger_file)
+    ledger.start_sync(market_api.sales_csv)
     if settings.dashboard_port:
-        dashboard.start(engine, settings.dashboard_host, settings.dashboard_port, settings.dashboard_token)
+        dashboard.start(engine, settings.dashboard_host, settings.dashboard_port, settings.dashboard_token,
+                        market=hub, ledger=ledger)
     engine.run(save=lambda state: save_state(settings.state_file, state))
 
 

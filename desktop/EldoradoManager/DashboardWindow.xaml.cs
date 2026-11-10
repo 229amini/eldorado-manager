@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
@@ -24,7 +25,7 @@ namespace EldoradoManager
     public partial class DashboardWindow : Window
     {
         private const int PassSeconds = 30, SlowDownSeconds = 180, SiteEvery = 5, SendDelaySeconds = 6, UndoSeconds = 20;
-        private const int RecentEvery = 10, SoldDays = 30, HistoryDays = 90, TopItems = 10, MaxBulkPercent = 50;
+        private const int RetrySeconds = 90, RecentEvery = 10, SoldDays = 30, HistoryDays = 90, TopItems = 10, MaxBulkPercent = 50;
         private const double BigChange = 0.5;
         private const string Waiting = "Sending 6 seconds after your last change. Enter sends now, Esc cancels.";
         private const string TooFine = "Eldorado takes 2 decimals, or up to 5 on a price below 0.01.";
@@ -53,6 +54,7 @@ namespace EldoradoManager
         private readonly Dictionary<string, SoldOrder> orders = new Dictionary<string, SoldOrder>();
         private readonly Dictionary<string, string> orderNotes = new Dictionary<string, string>();
         private readonly HashSet<string> dismissed = new HashSet<string>();
+        private readonly HashSet<string> retrying = new HashSet<string>();
         private List<Notice> notices = new List<Notice>();
         private List<Sale> sales;
         private bool recentRead;
@@ -69,6 +71,7 @@ namespace EldoradoManager
             this.market = market;
             hasAlarms = config.HasAlarms;
             ring = config.Ring;
+            if (config.HasHub) hub = new Hub(config.HubUrl, config.HubToken);
             Skin.Use(config.Theme);
             SourceInitialized += (_, __) => Restyle();
             clock.Tick += (_, __) =>
@@ -108,6 +111,7 @@ namespace EldoradoManager
                 web = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(surface.R, surface.G, surface.B) };
                 Host.Children.Add(web);
                 await web.EnsureCoreWebView2Async(environment);
+                web.ZoomFactor = config.Zoom > 0 ? config.Zoom : FitZoom();
                 Lock(web.CoreWebView2);
                 web.CoreWebView2.Navigate(Origin + "index.html");
             }
@@ -117,6 +121,30 @@ namespace EldoradoManager
                 if (web != null) Host.Children.Remove(web);
                 Missing.Visibility = Visibility.Visible;
             }
+        }
+
+        /// <summary>
+        /// The page was laid out on a 1080p screen. A 1440p screen at 100% Windows scaling shows it a third
+        /// smaller, so the first size follows the screen's width in Windows' own units.
+        /// </summary>
+        private static double FitZoom()
+        {
+            var width = SystemParameters.PrimaryScreenWidth;
+            return width >= 3200 ? 1.5 : width >= 2300 ? 1.25 : width >= 1800 ? 1.1 : 1.0;
+        }
+
+        /// <summary>Ctrl and +, - or 0 on the page. The size is kept per PC, because each has its own screen.</summary>
+        private void Zoom(int step)
+        {
+            var next = step == 0 ? FitZoom() : Math.Max(0.7, Math.Min(2.0, Math.Round((web.ZoomFactor + step * 0.1) * 10) / 10));
+            web.ZoomFactor = next;
+            var saved = Config.Load();
+            if (saved != null)
+            {
+                saved.Zoom = step == 0 ? 0 : next;
+                saved.Save();
+            }
+            Later();
         }
 
         /// <summary>The page shows text from other sellers' listings, so it gets nothing it doesn't need.</summary>
@@ -159,6 +187,7 @@ namespace EldoradoManager
                 ["descending"] = descending,
                 ["offline"] = rows.Any(r => r.State == "Offline"),
                 ["problem"] = problem,
+                ["unsaved"] = rows.Count(r => r.Unsaved != null),
                 ["checked"] = Stamp(pricesChecked),
                 ["siteChecked"] = Stamp(siteChecked ?? pricesChecked),
                 ["order"] = order,
@@ -174,6 +203,11 @@ namespace EldoradoManager
                 ["back"] = Sold(HistoryDays).Where(i => i.Why.Length > 0).Take(TopItems).Select(ItemToWeb).ToList(),
                 ["bulkNote"] = bulkNote,
                 ["bulkBusy"] = bulkBusy,
+                ["pricing"] = Insights.Pricing(rows, watched, DateTime.UtcNow),
+                ["customers"] = recentRead ? Customers.Build(orders.Values, DateTime.UtcNow) : null,
+                ["hub"] = hub != null,
+                ["finance"] = FinanceToWeb(),
+                ["zoom"] = Math.Round(web.ZoomFactor * 100),
             }));
         }
 
@@ -184,6 +218,11 @@ namespace EldoradoManager
             ["buyer"] = o.Buyer,
             ["quantity"] = o.Quantity,
             ["total"] = o.Total.ToString("0.00", CultureInfo.InvariantCulture) + " " + o.Currency,
+            ["amount"] = o.Total,
+            ["currency"] = o.Currency,
+            ["sale"] = o.IsSale,
+            ["offer"] = o.OfferId,
+            ["late"] = o.IsLate,
             ["state"] = o.State,
             ["open"] = o.IsOpen,
             ["placed"] = Stamp(o.Placed),
@@ -301,6 +340,7 @@ namespace EldoradoManager
             string Text(string key) => message.TryGetValue(key, out var value) ? Convert.ToString(value, CultureInfo.InvariantCulture) ?? "" : "";
             var row = rows.FirstOrDefault(r => r.Offer.Id == Text("id"));
             var direction = message.TryGetValue("dir", out var dir) ? Convert.ToInt32(dir, CultureInfo.InvariantCulture) : 0;
+            if (HandleFinance(Text("type"), Text, message)) return;
 
             switch (Text("type"))
             {
@@ -309,6 +349,9 @@ namespace EldoradoManager
                     Push();
                     return;
                 case "refresh": wake.Set(); return;
+                case "retryAll": RetryAll(); return;
+                case "pageError": Config.Log("page: " + Text("text")); return;
+                case "zoom": Zoom(Convert.ToInt32(message["step"], CultureInfo.InvariantCulture)); return;
                 case "sort":
                     sort = Text("value");
                     Resort();
@@ -351,6 +394,7 @@ namespace EldoradoManager
                 case "enterStock": QuantityEntered(row, Text("text")); break;
                 case "toggle": Toggle(row); break;
                 case "reopen": Reopen(row); break;
+                case "retry": Retry(row); break;
             }
         }
 
@@ -506,21 +550,23 @@ namespace EldoradoManager
             bulkBusy = true;
             var done = 0;
             var same = 0;
+            OfferRow current = null;
+            var price = 0.0;
             try
             {
                 foreach (var row in targets)
                 {
                     bulkNote = $"Sending {done + same + 1} of {targets.Count}";
                     Later();
-                    var price = OfferRow.Fit(row.LivePrice * (1 + percent / 100));
+                    current = row;
+                    price = OfferRow.Fit(row.LivePrice * (1 + percent / 100));
                     if (price <= 0 || Math.Abs(price - row.LivePrice) < 0.0000001)
                     {
                         same++;   // 5% off 0.04 rounds back to 0.04
                         continue;
                     }
                     await Task.Run(() => market.SetPrice(row.Offer, price));
-                    row.Offer.Price = price;
-                    row.LivePrice = price;
+                    Saved(row, price);
                     row.PriceDraft = OfferRow.FormatPrice(price);
                     done++;
                 }
@@ -530,6 +576,9 @@ namespace EldoradoManager
             {
                 Config.Log("bulk price: " + error.Message);
                 bulkNote = $"Stopped after {done} of {targets.Count}. {error.Message}";
+                current.PendingPrice = price;
+                current.PriceDraft = OfferRow.FormatPrice(price);
+                current.Unsaved = error.Message;
             }
             bulkBusy = false;
             wake.Set();
@@ -570,8 +619,9 @@ namespace EldoradoManager
                 var recentPass = pass % RecentEvery == 0;
                 try
                 {
+                    var readAt = DateTime.UtcNow;
                     var offers = market.Offers();
-                    Post(() => Merge(offers));
+                    Post(() => Merge(offers, readAt));
                     MarketWatch.SaveShop(new Shop
                     {
                         Offers = offers.Select(o => o.Id).ToList(),
@@ -583,18 +633,37 @@ namespace EldoradoManager
                     var unread = market.Notices();
                     Post(() => TakeOrders(open, recent, unread));
                     if (recentPass) FetchSales(salesDays);
-                    foreach (var offer in offers.Where(o => o.State != "Closed"))
+                    ReadLedger();
+                    var shared = hub == null ? null : ReadHub();
+                    if (hub == null)
                     {
-                        if (closing) return;
-                        var standing = market.Look(offer, site);
-                        Post(() => rows.FirstOrDefault(r => r.Offer.Id == offer.Id)?.Apply(standing));
+                        foreach (var offer in offers.Where(o => o.State != "Closed"))
+                        {
+                            if (closing) return;
+                            var standing = market.Look(offer, site);
+                            Post(() => rows.FirstOrDefault(r => r.Offer.Id == offer.Id)?.Apply(standing));
+                        }
                     }
                     Post(() =>
                     {
-                        pricesChecked = DateTime.UtcNow;
-                        if (site) siteChecked = pricesChecked;
-                        problem = null;
-                        if (seen != null) watched = seen;
+                        if (shared == null)
+                        {
+                            pricesChecked = DateTime.UtcNow;
+                            if (site) siteChecked = pricesChecked;
+                        }
+                        else
+                        {
+                            pricesChecked = shared.Checked ?? pricesChecked;
+                            siteChecked = shared.SiteChecked ?? siteChecked;
+                        }
+                        problem = shared?.Problem;
+                        if (shared != null)
+                        {
+                            foreach (var row in rows)
+                                if (shared.Standings.TryGetValue(row.Offer.Id, out var standing)) row.Apply(standing);
+                            if (shared.Watched != null) watched = shared.Watched;
+                        }
+                        else if (seen != null) watched = seen;
                         book.NotePresence(offers.Any(o => o.State == "Offline"), DateTime.Now.Hour);
                         if (site)
                         {
@@ -621,6 +690,23 @@ namespace EldoradoManager
 
         private void Post(Action action) => Dispatcher.BeginInvoke(action);
 
+        /// <summary>
+        /// With a shared server this PC never reads the public listings, so several PCs don't share one rate
+        /// limit. When the server can't be reached the market waits; the problem says why.
+        /// </summary>
+        private HubMarket ReadHub()
+        {
+            try
+            {
+                return hub.Market();
+            }
+            catch (MarketError error)
+            {
+                Config.Log("shared server: " + error.Message);
+                return new HubMarket { Problem = "Shared server: " + error.Message };
+            }
+        }
+
         private sealed class SoldItem
         {
             public string Title, OfferId, Why, Currency;
@@ -629,7 +715,7 @@ namespace EldoradoManager
             public DateTime Last;
         }
 
-        private void Merge(List<Offer> offers)
+        private void Merge(List<Offer> offers, DateTime readAt)
         {
             foreach (var offer in offers)
             {
@@ -642,7 +728,7 @@ namespace EldoradoManager
                 }
                 else
                 {
-                    row.Sync(offer, false);
+                    row.Sync(offer, false, readAt);
                 }
             }
             rows.RemoveAll(r => offers.All(o => o.Id != r.Offer.Id));
@@ -652,7 +738,8 @@ namespace EldoradoManager
         /// <summary>Holds still while an edit is open, so offers never jump under the pointer.</summary>
         private void Resort()
         {
-            if (rows.Any(r => r.PendingPrice != null || r.PendingQuantity != null || r.NeedsConfirm)) return;
+            // A red row can wait for hours, so it doesn't freeze the order.
+            if (rows.Any(r => (r.PendingPrice != null || r.PendingQuantity != null) && r.Unsaved == null || r.NeedsConfirm)) return;
             switch (sort)
             {
                 case "site": rows = Ordered(r => r.SiteValue); break;
@@ -784,6 +871,7 @@ namespace EldoradoManager
             row.NeedsConfirm = false;
             row.Note = "";
             row.PriceDraft = OfferRow.FormatPrice(row.LivePrice);
+            if (row.PendingQuantity == null) row.Unsaved = null;
         }
 
         private void SendPrice(OfferRow row, double price, bool canUndo = true)
@@ -791,13 +879,39 @@ namespace EldoradoManager
             var before = row.LivePrice;
             Run(row, () => market.SetPrice(row.Offer, price), () =>
             {
-                row.Offer.Price = price;
-                row.LivePrice = price;
+                Saved(row, price);
                 row.PendingPrice = null;
-                row.Note = "Price saved";
+                row.Note = "Price saved. The next check confirms it.";
                 if (canUndo) OfferUndo(row, before);
                 wake.Set();
-            }, () => KeepNote(row, ResetPrice));
+            });
+        }
+
+        /// <summary>Eldorado took the price. The next read of your offers has to show it, or the row turns red.</summary>
+        private static void Saved(OfferRow row, double price)
+        {
+            row.Offer.Price = price;
+            row.LivePrice = price;
+            row.SentPrice = price;
+            row.SentAt = DateTime.UtcNow;
+        }
+
+        /// <summary>Sends whatever a red row still holds: its price, its stock, or both.</summary>
+        private void Retry(OfferRow row)
+        {
+            row.Unsaved = null;
+            if (row.State == "Closed")
+            {
+                Reopen(row);
+                return;
+            }
+            if (row.PendingPrice != null) SendPrice(row, row.PendingPrice.Value, false);
+            if (row.PendingQuantity != null) SendQuantity(row);
+        }
+
+        private void RetryAll()
+        {
+            foreach (var row in rows.Where(r => r.Unsaved != null).ToList()) Retry(row);
         }
 
         private static void OfferUndo(OfferRow row, double price)
@@ -810,13 +924,6 @@ namespace EldoradoManager
                 if (row.UndoPrice == price) row.UndoPrice = null;
             };
             timer.Start();
-        }
-
-        private static void KeepNote(OfferRow row, Action<OfferRow> reset)
-        {
-            var note = row.Note;
-            reset(row);
-            row.Note = note;
         }
 
         private static bool Fits(double price) => Math.Abs(OfferRow.Fit(price) - price) < 0.0000001;
@@ -870,7 +977,7 @@ namespace EldoradoManager
                 row.Offer.Quantity = quantity.Value;
                 row.PendingQuantity = null;
                 row.Note = "Stock saved";
-            }, () => KeepNote(row, ResetQuantity));
+            });
         }
 
         private static void ResetQuantity(OfferRow row)
@@ -878,6 +985,7 @@ namespace EldoradoManager
             row.PendingQuantity = null;
             row.Note = "";
             row.QuantityDraft = row.Offer.Quantity.ToString(CultureInfo.InvariantCulture);
+            if (row.PendingPrice == null) row.Unsaved = null;
         }
 
         // ---------- pause ----------
@@ -895,7 +1003,7 @@ namespace EldoradoManager
                 row.Offer.State = row.State;
                 row.Note = listed ? "Offer paused" : "Offer resumed";
                 wake.Set();
-            }, () => { });
+            }, keep: false);
         }
 
         // ---------- closed offers ----------
@@ -935,8 +1043,9 @@ namespace EldoradoManager
             string refused = null;
             Run(row, () =>
             {
-                if (price != null) market.SetPrice(row.Offer, price.Value);
+                // Stock first: Eldorado refuses a price on an offer with 0 in stock (seen live 2026-11-10).
                 market.SetQuantity(row.Offer, quantity);
+                if (price != null) market.SetPrice(row.Offer, price.Value);
                 try
                 {
                     market.Resume(row.Offer);
@@ -951,11 +1060,7 @@ namespace EldoradoManager
                 }
             }, () =>
             {
-                if (price != null)
-                {
-                    row.Offer.Price = price.Value;
-                    row.LivePrice = price.Value;
-                }
+                if (price != null) Saved(row, price.Value);
                 row.Offer.Quantity = quantity;
                 row.PendingPrice = null;
                 row.PendingQuantity = null;
@@ -963,7 +1068,7 @@ namespace EldoradoManager
                     ? "Reopened. The next check confirms it's listed."
                     : $"Price and stock saved. Resume answered: {refused} The next check shows whether it's listed.";
                 wake.Set();
-            }, () => { });
+            });
         }
 
         // ---------- sending ----------
@@ -993,20 +1098,54 @@ namespace EldoradoManager
             waiting.Remove(key);
         }
 
-        private async void Run(OfferRow row, Action call, Action saved, Action failed)
+        /// <summary>
+        /// A refused edit stays on the row in red with your value, never quietly rolled back: a sale at the old
+        /// price is the cost of missing it. Keep is off for actions with nothing typed to keep, like pause.
+        /// </summary>
+        private async void Run(OfferRow row, Action call, Action saved, bool keep = true)
         {
             row.Note = "Saving";
             try
             {
                 await Task.Run(call);
+                row.Unsaved = null;
                 saved();
             }
             catch (MarketError error)
             {
                 Config.Log("market write: " + error.Message);
-                row.Note = error.Message;
-                failed();
+                var why = Plain(error.Message);
+                row.Note = why;
+                if (!keep) return;
+                row.Unsaved = why;
+                if (error.Status == 429) RetryLater(row);
             }
+        }
+
+        /// <summary>A rate limit lifts by itself, so the change goes again until it lands or you discard it.</summary>
+        private void RetryLater(OfferRow row)
+        {
+            var id = row.Offer.Id;
+            if (!retrying.Add(id)) return;
+            row.Unsaved += $" Trying again at {DateTime.Now.AddSeconds(RetrySeconds):HH:mm}.";
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(RetrySeconds) };
+            timer.Tick += (_, __) =>
+            {
+                timer.Stop();
+                retrying.Remove(id);
+                if (row.Unsaved != null && rows.Contains(row)) Retry(row);
+            };
+            timer.Start();
+        }
+
+        /// <summary>Eldorado's stock limits, said as what to do about them.</summary>
+        private static string Plain(string message)
+        {
+            var range = Regex.Match(message, @"quantity of: \d+\. It must fall in range between (\d+) and", RegexOptions.IgnoreCase);
+            if (range.Success) return $"Eldorado needs at least {range.Groups[1].Value} in stock on this offer.";
+            var floor = Regex.Match(message, @"Quantity of \d+ is too low\. Increase it to at least (\d+)", RegexOptions.IgnoreCase);
+            if (floor.Success) return $"Eldorado needs at least {floor.Groups[1].Value} in stock before it takes a price. Set the stock first.";
+            return message;
         }
 
         [DllImport("dwmapi.dll")]

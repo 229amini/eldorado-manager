@@ -42,6 +42,8 @@ Eldorado shows the secret once. Eldorado Manager encrypts it with your Windows a
 
 After that, the alarm starts each time you sign in. Open the dashboard from the Start menu: **Eldorado Manager**. Repeat these steps on each PC you use.
 
+**Shared server**, at the bottom of the Eldorado key tab. If you run the Eldorado Manager server, enter its API address and its `DASHBOARD_TOKEN`. Your server then reads the market once for all your PCs, and the **Finance** tab keeps one ledger they all share. Leave it empty and each PC reads the market itself, which can run into Eldorado's rate limit once two or three PCs are open. [Deployment](deployment.md#share-the-api-with-the-windows-app) shows how to publish the API.
+
 ## Answer an alarm
 
 Click **Got it**, or close the window. Both tell every device you saw it. Tapping **Got it** on your phone closes the window on your PC.
@@ -53,6 +55,14 @@ If another app already rings for your orders, click **Alarm on** at the top of t
 ## The dashboard
 
 The strip under the tabs shows what needs you right now: orders to deliver, disputes, offers that slipped, offers out of stock. When nothing does, it says so.
+
+### Home
+
+The first screen. Four numbers: sold today, orders to deliver, offers on page 1, and what you owe in Finance. Below them:
+
+- **Do now**: open orders, refused edits, offers out of stock or about to run out
+- **Price checks**: offers priced below or above the range this week's sales happened in, with a one-click price
+- **Sold per day** for the last 14 days, and items other sellers sell that your shop doesn't have
 
 ### Offers
 
@@ -66,11 +76,15 @@ Each offer takes one row:
 
 Type a new price or stock on the row. Eldorado Manager sends it 6 seconds after your last change, or right away when you press Enter. A price change over 50% asks you to confirm.
 
+If Eldorado refuses an edit, the row turns red and keeps the value you typed. A line under it gives Eldorado's reason, with **Send again** and **Discard my change**. When the reason is the rate limit, the app sends it again every 90 seconds until it lands. After a save, the app reads your offers again and checks the new price is there. If Eldorado still shows the old one, the row turns red too.
+
+**Sold at** shows the middle price of the sales other sellers made on the same item this week, with the count under it. Green means your price sits inside the range most of those sales happened in. Red means you're below or above all of it. The side panel draws that range with your price on it, and offers **Set price to** the middle when the data holds enough sales.
+
 Click a row to open the side panel. It compares your price, delivery time and ratings with the top 5 sellers and names your biggest gap.
 
 **Change many** changes one game's prices by a percentage, or its delivery time. You review the list before it sends.
 
-Eldorado closes an offer when its stock runs out. Under **Closed**, type a price and a stock above 0 on the row, then click **Reopen offer** in the side panel. The new stock lists the offer again. The next check shows where it landed.
+Eldorado closes an offer when its stock runs out. Under **Closed**, type a price and a stock above 0 on the row, then click **Reopen offer** in the side panel. The app sends the stock first, because Eldorado refuses a price on an offer with none, then the price. Some offers need a minimum stock to meet Eldorado's minimum order value; the red line names it.
 
 ### Orders
 
@@ -86,6 +100,27 @@ Pick 7, 30 or 90 days:
 - **Net income cleared** is money Eldorado has settled. Orders take about 5 days to clear, so the card also shows what's still on its way.
 - **Best sellers** ranks your items and shows each one's state today.
 - **Worth bringing back** lists items that sold in the last 90 days but are gone, paused or nearly out.
+
+### Customers
+
+From your own orders of the last 90 days:
+
+- **Top cards**: how many buyers you had, how many came back and what share of your sales they brought, the average order, and the usual gap before a buyer orders again.
+- **When orders come in**: a grid of weekday by hour in your local time. Darker cells had more orders.
+- **Best buyers** ranks buyers by what they spent, with how often they buy and what.
+- **Worth watching** lists buyers with disputes, bad reviews or more than one cancel. A cancel for your late delivery doesn't count against the buyer.
+- **Bought together** pairs items the same buyers bought.
+
+### Finance
+
+Finance needs the shared server. It records whose stock each sale was, so you can settle with the people you sell for.
+
+1. Click **Add person** and give each person a name.
+2. Under **To assign**, pick an order. Give all its units to one person, or split them, for example 5 to one person and 5 to another. Click **Save**.
+3. Click a person to see what they earned, what you paid, and what you still owe. Record each payment there.
+4. **Export to Excel** writes their work list for the dates you pick: each order with their units and share, then their payments and balance. **Export everyone** writes one sheet per person and a summary.
+
+A share counts the money after Eldorado's fee, not the order total. Eldorado's order API carries no fee, so your server reads the fee from Eldorado's sales export once an order clears, about 5 days after the sale. Until then it estimates the fee from your recent sales and marks the amount **est**.
 
 ### Insights
 
@@ -108,11 +143,13 @@ Each row shows the cheapest price listed right now, and two numbers from the fal
 
 Both start empty and fill in after the second check.
 
-Read it as a hint. Stock also falls when a seller edits it by hand, and Eldorado Manager sees only the top of a large listing. The list labels itself **Early** until it has a few days of data. It keeps collecting while the alarm runs, even with the dashboard closed, and it needs no key.
+Read it as a hint. Stock also falls when a seller edits it by hand, and Eldorado Manager sees only the top of a large listing. The list labels itself **Early** until it has a few days of data. Without a shared server it keeps collecting while the alarm runs on this PC, even with the dashboard closed. With one, the server collects for all your PCs around the clock.
 
 ## Change settings
 
 Click **Settings** in the dashboard, or open **Eldorado Manager settings** from the Start menu. The moon and sun button switches between Dark and Light.
+
+The dashboard picks its size from your screen, larger on a 1440p or 4K monitor. Press Ctrl and + or - to change it, and Ctrl and 0 to go back. Each PC keeps its own size.
 
 To use your own alarm sound, add a path to a `.wav` file as `"sound"` in `%LOCALAPPDATA%\EldoradoManager\config.json`, then restart the app.
 

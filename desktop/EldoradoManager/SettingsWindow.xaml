@@ -245,6 +245,15 @@
                         <TextBlock Style="{StaticResource RowLabel}" Text="Client secret" />
                         <PasswordBox x:Name="SellerSecretBox" />
                     </DockPanel>
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,10,0,10" Text="Shared server: your Eldorado Manager server reads the market once for every PC and keeps the Finance tab. Leave the address empty to read the market from this PC." />
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource RowLabel}" Text="Server address" />
+                        <TextBox x:Name="HubUrlBox" />
+                    </DockPanel>
+                    <DockPanel>
+                        <TextBlock Style="{StaticResource RowLabel}" Text="Server token" />
+                        <PasswordBox x:Name="HubTokenBox" />
+                    </DockPanel>
                 </StackPanel>
             </Grid>
 

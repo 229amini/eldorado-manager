@@ -88,6 +88,7 @@ namespace EldoradoManager
         public string Review = "";
         public string Dispute = "";
         public string Cancelled = "";   // Eldorado's reason, when the order was cancelled
+        public string Category = "";    // Currency or an item category, which sets Eldorado's fee
 
         public bool IsOpen => State == "Paid" || State == "Disputed";
         public bool IsSale => State != "Canceled";
@@ -415,6 +416,7 @@ namespace EldoradoManager
                 Review = review == null ? "" : Text(review, "reviewRating"),
                 Dispute = dispute == null ? "" : Text(dispute, "reason").Replace('_', ' '),
                 Cancelled = cancelled == null ? "" : Text(cancelled, "reason"),
+                Category = Text(offer, "category"),
             };
         }
 

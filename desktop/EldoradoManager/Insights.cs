@@ -297,6 +297,74 @@ namespace EldoradoManager
             return prices[prices.Count / 2];
         }
 
+        /// <summary>
+        /// Where each of your offers stands against the sales the market watch saw for the same item in the
+        /// last week: the price range most of them happened in, their middle, the unit-weighted average, and the
+        /// offer that sold most. The cheapest listing alone pushes a seller to give margin away for nothing.
+        /// </summary>
+        public static Dictionary<string, object> Pricing(List<OfferRow> rows, Watched watched, DateTime now)
+        {
+            var result = new Dictionary<string, object>();
+            if (watched == null || watched.Sweeps == 0) return result;
+            var since = now.AddDays(-MarketDays).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var items = watched.Items.Values.GroupBy(i => Match(i.Kind, i.Name)).ToDictionary(g => g.Key, g => g.First());
+            foreach (var row in rows.Where(r => !r.Offer.IsCurrency && r.Offer.Currency == "USD" && r.Offer.EnvironmentValues.Length > 0))
+            {
+                if (!items.TryGetValue(Match(row.Offer.EnvironmentValues.First(), row.Offer.EnvironmentValues.Last()), out var item)) continue;
+                var falls = item.Days.Where(d => string.CompareOrdinal(d.Key, since) >= 0).SelectMany(d => d.Value.Falls ?? new List<Fall>()).ToList();
+                var entry = new Dictionary<string, object> { ["low"] = item.Low, ["sales"] = falls.Count };
+                result[row.Offer.Id] = entry;
+                if (falls.Count == 0) continue;
+                var prices = falls.Select(f => f.Price).OrderBy(p => p).ToList();
+                var from = prices[prices.Count / 4];
+                var to = prices[Math.Min(prices.Count - 1, prices.Count * 3 / 4)];
+                var middle = prices[prices.Count / 2];
+                var average = falls.Sum(f => f.Price * f.Units) / Math.Max(1, falls.Sum(f => f.Units));
+                var top = falls.GroupBy(f => f.Offer).OrderByDescending(g => g.Count()).ThenByDescending(g => g.Sum(f => f.Units)).First();
+                entry["soldAt"] = middle;
+                entry["average"] = Math.Round(average, 4);
+                entry["from"] = from;
+                entry["to"] = to;
+                entry["topPrice"] = top.Last().Price;
+                entry["topSeller"] = top.Last().Seller;
+                entry["topSales"] = top.Count();
+                entry["topLink"] = top.Last().Link;
+                entry["units"] = falls.Sum(f => f.Units);
+                Advise(entry, row.LivePrice, from, middle, to, falls.Count);
+            }
+            return result;
+        }
+
+        /// <summary>A suggestion, never a change: few sales make a weak signal, so it says so instead of advising.</summary>
+        private static void Advise(Dictionary<string, object> entry, double yours, double from, double middle, double to, int sales)
+        {
+            const int FewestSales = 4;
+            if (sales < FewestSales)
+            {
+                entry["verdict"] = "few";
+                entry["advice"] = $"Too few sales to judge ({sales}).";
+                return;
+            }
+            var target = OfferRow.Fit(middle);
+            entry["suggest"] = target;
+            var range = $"{OfferRow.FormatPrice(from)} to {OfferRow.FormatPrice(to)}";
+            if (yours < from * (1 - SmallestRaise))
+            {
+                entry["verdict"] = "low";
+                entry["advice"] = $"Below the sales range, {range}. Room to raise.";
+            }
+            else if (yours > to * (1 + SmallestRaise))
+            {
+                entry["verdict"] = "high";
+                entry["advice"] = $"Above the sales range, {range}.";
+            }
+            else
+            {
+                entry["verdict"] = "fair";
+                entry["advice"] = $"Inside the sales range, {range}.";
+            }
+        }
+
         private static string Match(string kind, string name) => (kind + "|" + name).ToLowerInvariant();
 
         private static string Count(int count, string word) => count == 1 ? "1 " + word : $"{count} {word}s";

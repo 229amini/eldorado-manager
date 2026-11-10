@@ -44,6 +44,12 @@ class Settings:
 
     state_file: str = "/data/state.json"
 
+    market_enabled: bool = True
+    market_pass_seconds: int = 180    # standings pass; the site order is walked on every 5th
+    market_sweep_minutes: int = 30    # listing sweep for the market watch
+    market_file: str = "/data/market.json"
+    ledger_file: str = "/data/ledger.json"
+
     @classmethod
     def from_env(cls, env=None) -> "Settings":
         env = os.environ if env is None else env
@@ -51,6 +57,7 @@ class Settings:
         def get(name, default=""):
             return env.get(name, default).strip()
 
+        state_file = get("STATE_FILE", "/data/state.json")
         return cls(
             client_id=get("ELDORADO_CLIENT_ID"),
             client_secret=get("ELDORADO_CLIENT_SECRET"),
@@ -77,5 +84,10 @@ class Settings:
             dashboard_host=get("DASHBOARD_HOST", "0.0.0.0"),
             dashboard_port=int(get("DASHBOARD_PORT", "8787")),
             dashboard_token=get("DASHBOARD_TOKEN"),
-            state_file=get("STATE_FILE", "/data/state.json"),
+            state_file=state_file,
+            market_enabled=_bool(get("MARKET_ENABLED", "true")),
+            market_pass_seconds=int(get("MARKET_PASS_SECONDS", "180")),
+            market_sweep_minutes=int(get("MARKET_SWEEP_MINUTES", "30")),
+            market_file=get("MARKET_FILE") or os.path.join(os.path.dirname(state_file), "market.json"),
+            ledger_file=get("LEDGER_FILE") or os.path.join(os.path.dirname(state_file), "ledger.json"),
         )

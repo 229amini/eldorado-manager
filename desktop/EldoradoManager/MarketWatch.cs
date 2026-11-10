@@ -100,7 +100,8 @@ namespace EldoradoManager
                 var wait = SweepMinutes;
                 try
                 {
-                    var shop = LoadShop();
+                    // A shared server sweeps for every PC; a second sweep here would only spend the rate limit.
+                    var shop = Config.Load()?.HasHub == true ? null : LoadShop();
                     if (shop != null && shop.Listings.Count > 0) Sweep(shop);
                 }
                 catch (MarketError error)

@@ -41,7 +41,17 @@ Going offline doesn't cancel or deliver the order that triggered it.
 | `DASHBOARD_HOST_PORT` | `8787` | With Docker: the port on your machine |
 | `DASHBOARD_PORT` | `8787` | Without Docker: the port to listen on. `0` turns the dashboard off |
 | `DASHBOARD_HOST` | `0.0.0.0` | Without Docker: the bind address. Use `127.0.0.1` on a public server |
-| `DASHBOARD_TOKEN` | | Password for the dashboard. Set this before you expose the port |
+| `DASHBOARD_TOKEN` | | Password for the dashboard. Set this before you expose the port. The market and finance API stay off until you set it |
+
+## Market hub and ledger
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MARKET_ENABLED` | `true` | Set to `false` to stop the server reading Eldorado's public listings |
+| `MARKET_PASS_SECONDS` | `180` | Time between checks of where your offers stand. Every 5th check also walks the site order |
+| `MARKET_SWEEP_MINUTES` | `30` | Time between reads of the listings you trade in, for the market watch |
+| `MARKET_FILE` | `market.json` next to `STATE_FILE` | Where the market hub keeps what it has seen |
+| `LEDGER_FILE` | `ledger.json` next to `STATE_FILE` | Where the finance ledger is kept |
 
 ## Channels
 

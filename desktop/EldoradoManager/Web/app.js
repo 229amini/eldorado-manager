@@ -16,7 +16,7 @@ const SVG = 'http://www.w3.org/2000/svg';
 const COIN = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#16181d"/><circle cx="100" cy="100" r="66" fill="#f2b632"/><circle cx="100" cy="100" r="50" fill="none" stroke="#a8740f" stroke-width="7"/><rect x="92" y="68" width="16" height="64" fill="#a8740f"/></svg>');
 
 let state = { theme: 'dark', sort: 'attention', offers: [], orders: [], notices: [], sales: { days: 30, ready: false }, best: [], back: [], order: null };
-let tab = 'offers';
+let tab = 'home';
 let view = 'live';
 let filter = '';
 let selected = null;
@@ -230,9 +230,10 @@ function choice(attrs, items, value) {
 
 function topBar() {
   const open = openOrders().length;
-  const tabs = [['offers', 'Offers', state.offers.filter(isLive).length], ['orders', 'Orders', open], ['sales', 'Sales', null], ['insights', 'Insights', null]];
+  const unassigned = state.finance && state.finance.ready ? sales90().filter(o => assignedUnits(o) < o.quantity).length : null;
+  const tabs = [['home', 'Home', null], ['offers', 'Offers', state.offers.filter(isLive).length], ['orders', 'Orders', open], ['sales', 'Sales', null], ['customers', 'Customers', null], ['finance', 'Finance', unassigned], ['insights', 'Insights', null]];
   return h('header', { class: 'top' },
-    h('b', { class: 'name' }, h('span', { class: 'mark' }, logo()), 'Eldorado Manager'),
+    h('b', { class: 'name', title: 'Eldorado Manager' }, h('span', { class: 'mark' }, logo()), h('span', { class: 'label' }, 'Eldorado Manager')),
     h('nav', { role: 'tablist', 'aria-label': 'Sections' },
       tabs.map(([key, label, count]) => h('button', {
         type: 'button', role: 'tab', 'aria-selected': String(tab === key), 'data-do': 'tab', 'data-value': key,
@@ -251,6 +252,7 @@ function topBar() {
 function attention() {
   const items = [];
   const push = (key, text, attrs, hot) => items.push(h('button', Object.assign({ type: 'button', 'data-key': key, class: hot ? 'flag hot' : 'flag' }, attrs), text));
+  if (state.unsaved) push('unsaved', state.unsaved === 1 ? '1 change is not on Eldorado. Send again' : `${state.unsaved} changes are not on Eldorado. Send all again`, { 'data-do': 'retryAll' }, true);
   if (state.offline) items.push(h('span', { class: 'flag hot', 'data-key': 'offline' }, "You're offline on Eldorado, so buyers can't see your offers"));
   const open = openOrders();
   const disputed = open.filter(o => o.state === 'Disputed').length;
@@ -311,19 +313,74 @@ function offerTable(list, pick) {
     return h('p', { class: 'empty' }, text);
   }
   return h('div', { class: 'scroll' }, h('table', { class: 'offers' },
-    h('colgroup', {}, ['offer', 'place', 'rank', 'low', 'price', 'stock', 'sold'].map(c => h('col', { class: 'c-' + c }))),
-    h('thead', {}, h('tr', {}, ['Offer', 'Place', 'Price rank', 'Lowest', 'Your price', 'Stock', 'Sold 30 d'].map(t => h('th', { scope: 'col' }, t)))),
-    h('tbody', {}, list.map(o => h('tr', {
+    h('colgroup', {}, ['offer', 'place', 'rank', 'low', 'soldat', 'price', 'stock', 'sold'].map(c => h('col', { class: 'c-' + c }))),
+    h('thead', {}, h('tr', {}, [['Offer'], ['Place'], ['Price rank'], ['Lowest'], ['Sold at', 'The middle price of the sales other sellers made this week. Green: you are inside the range most sales happen in.'], ['Your price'], ['Stock'], ['Sold 30 d']]
+      .map(([t, tip]) => h('th', { scope: 'col', title: tip || null }, t)))),
+    h('tbody', {}, list.flatMap(o => [h('tr', {
       'data-key': o.id, 'data-do': 'pick', 'data-id': o.id, tabindex: 0,
-      class: pick && o.id === pick.id ? 'on' : null, 'aria-selected': String(!!pick && o.id === pick.id),
+      class: [pick && o.id === pick.id ? 'on' : '', o.unsaved ? 'unsaved' : ''].join(' ').trim() || null,
+      'aria-selected': String(!!pick && o.id === pick.id),
     },
       h('td', {}, h('div', { class: 'it' }, picture(o, 'thumb'), h('b', {}, o.title))),
       h('td', { class: 'place' }, gate(o), ' ', move(o), o.site !== null ? h('small', {}, siteNote(o)) : null),
       h('td', {}, o.listed ? o.rank : ''),
       h('td', {}, o.lowest === null ? '' : o.lowest === o.livePrice ? h('span', { class: 'you' }, 'You') : o.lowestText),
-      h('td', {}, quick(o, 'price', 'Price', o.priceDraft, o.pendingPrice)),
+      h('td', {}, soldAtCell(o)),
+      h('td', {}, quick(o, 'price', 'Price', o.priceDraft, o.pendingPrice), o.checking ? h('small', { class: 'checking' }, 'Checking it stuck') : null),
       h('td', {}, quick(o, 'stock', 'Stock', o.stockDraft, o.pendingStock)),
-      h('td', { class: o.sold ? null : 'quiet' }, o.sold))))));
+      h('td', { class: o.sold ? null : 'quiet' }, o.sold)),
+      o.unsaved ? unsavedLine(o) : null].filter(Boolean)))));
+}
+
+const priceOf = o => (state.pricing || {})[o.id] || null;
+
+// The price sales actually happened at, which is the number to price against, not the cheapest listing.
+function soldAtCell(o) {
+  const p = priceOf(o);
+  if (!p) return h('span', { class: 'quiet' }, o.kind === 'Currency' ? '' : 'No data');
+  if (!p.soldAt) return h('span', { class: 'quiet', title: 'No sales seen for this item this week' }, 'No sales');
+  return h('span', { class: 'sold-at ' + (p.verdict || ''), title: p.advice || '' }, fit(p.soldAt), h('small', {}, plural(p.sales, 'sale')));
+}
+
+// Under the place: the range sales happen in, with your price marked on it.
+function priceBand(o) {
+  const p = priceOf(o);
+  if (!p || !p.soldAt) return null;
+  const lo = Math.min(p.low, p.from, o.livePrice), hi = Math.max(p.to, p.topPrice, o.livePrice) || 1;
+  const at = v => Math.max(0, Math.min(100, (v - lo) / ((hi - lo) || 1) * 100));
+  const mark = v => Math.max(1, Math.min(99, at(v)));   // a mark at either end stays inside the line
+  return h('section', { class: 'band-card' },
+    h('h3', {}, 'What this sells for'),
+    h('div', { class: 'band-line', role: 'img', 'aria-label': `Most sales between ${fit(p.from)} and ${fit(p.to)}, you at ${fit(o.livePrice)}` },
+      h('i', { class: 'range', 'data-left': at(p.from), 'data-width': Math.max(2, at(p.to) - at(p.from)) }),
+      h('i', { class: 'mark low', 'data-left': mark(p.low), title: 'Cheapest listed ' + fit(p.low) }),
+      h('i', { class: 'mark mid', 'data-left': mark(p.soldAt), title: 'Sold at ' + fit(p.soldAt) }),
+      h('i', { class: 'mark you', 'data-left': mark(o.livePrice), title: 'You ' + fit(o.livePrice) })),
+    h('dl', { class: 'band-facts' },
+      h('dt', {}, 'Cheapest listed'), h('dd', {}, fit(p.low)),
+      h('dt', {}, 'Most sales between'), h('dd', {}, `${fit(p.from)} to ${fit(p.to)}`),
+      h('dt', {}, 'Sold at, middle'), h('dd', {}, fit(p.soldAt)),
+      h('dt', {}, 'Average sale'), h('dd', {}, fit(p.average)),
+      h('dt', {}, 'Best seller'), h('dd', {}, p.topLink ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': p.topLink }, `${p.topSeller} at ${fit(p.topPrice)}, ${plural(p.topSales, 'sale')}`) : p.topSeller)),
+    h('p', { class: 'insight ' + (p.verdict || '') }, p.advice),
+    p.suggest && Math.abs(p.suggest - o.livePrice) > 0.00001 && o.listed
+      ? h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, `Set price to ${fit(p.suggest)}`))
+      : null,
+    null);
+}
+
+// A span wider than the visible columns makes the table invent empty ones, which squeeze the offer names.
+// These breakpoints mirror the ones in style.css that hide Price rank, Lowest and Sold.
+const shownColumns = () => 8 - (innerWidth <= 1240 ? 1 : 0) - (innerWidth <= 1100 ? 2 : 0);
+
+// A refused edit gets its own line under the offer, so it can't be missed the way a side note was.
+function unsavedLine(o) {
+  return h('tr', { class: 'unsaved-why', 'data-key': o.id + '-why', 'data-id': o.id },
+    h('td', { colspan: shownColumns() },
+      h('div', { class: 'why', role: 'alert' },
+        h('b', {}, 'Not on Eldorado'), h('span', {}, o.unsaved),
+        h('button', { type: 'button', class: 'solid', 'data-do': 'retry' }, isClosed(o) ? 'Reopen again' : 'Send again'),
+        h('button', { type: 'button', class: 'line', 'data-do': 'discard' }, 'Discard my change'))));
 }
 
 function actions(o) {
@@ -399,6 +456,7 @@ function panel(o) {
     where(o),
     gaps(o),
     cheaperLine(o),
+    priceBand(o),
     h('p', { class: 'note', role: 'status' }, o.note),
     actions(o),
     rivals(o));
@@ -638,7 +696,7 @@ function marketCard(market) {
     h('header', {}, h('h3', {}, 'Selling on the market'), h('span', {}, market.early ? h('b', { class: 'pill' }, 'Early') : null, ' ', label)),
     h('div', { class: 'market-bar' },
       segment('Show items', [['missing', 'Not in your shop'], ['all', 'Everything']], marketShown, 'marketShown'),
-      h('p', { class: 'hint' }, 'An estimate from other sellers’ stock falling over the last 7 days. Stock can also fall for other reasons.')),
+      h('p', { class: 'hint' }, 'Estimate from rival stock falls, 7 days')),
     rows.length ? h('table', {},
       h('colgroup', {}, ['item', 'sellers', 'falls', 'low', 'sold', 'top', 'yours'].map(c => h('col', { class: 'm-' + c }))),
       h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'),
@@ -686,9 +744,319 @@ function insightsPage() {
     changeCard(data.changes));
 }
 
+// ---------- home ----------
+
+const sameDay = (a, b) => new Date(a).toDateString() === new Date(b).toDateString();
+
+// One screen that answers "what needs me, how am I doing, where is money left on the table".
+function homePage() {
+  const now = Date.now();
+  const sold = state.orders.filter(o => o.sale);
+  const today = sold.filter(o => sameDay(o.placed, now));
+  const yesterday = sold.filter(o => sameDay(o.placed, now - 864e5));
+  const sum = list => list.reduce((a, o) => a + (o.amount || 0), 0);
+  const live = state.offers.filter(isLive);
+  const front = live.filter(onPageOne).length;
+  const owed = ledger() ? (ledger().summary || []).reduce((a, s) => a + Math.max(0, s.balance), 0) : null;
+  const open = openOrders();
+  const change = yesterday.length ? Math.round((sum(today) - sum(yesterday)) / Math.max(sum(yesterday), 0.01) * 100) : null;
+  const small = text => h('small', {}, text);
+  return h('div', { class: 'scroll sales home' },
+    h('div', { class: 'stats' },
+      stat('Sold today', dollars(sum(today)), change === null ? small(`${plural(today.length, 'order')}, none yesterday`)
+        : h('small', { class: change >= 0 ? 'rise' : 'fall' }, triangle(change >= 0), `${Math.abs(change)}% vs yesterday, ${plural(today.length, 'order')}`), true),
+      stat('To deliver', open.length, small(open.length ? 'Waiting for you' : 'Nothing waiting')),
+      stat('On page 1', `${front} of ${live.length}`, small('Live offers')),
+      owed === null ? stat('Live offers', live.length, small(`${state.offers.filter(isClosed).length} closed, ${state.offers.filter(o => o.stateText === 'Paused').length} paused`))
+        : stat('You owe', dollars(owed), small('Finance balance'))),
+    h('div', { class: 'duo home-top' }, doNow(open), opportunities()),
+    h('div', { class: 'duo' },
+      state.sales.ready && state.sales.daily ? bars(state.sales.daily.slice(-14)) : h('section', { class: 'card' }, h('p', { class: 'hint' }, 'Reading your sales.')),
+      moversCard()));
+}
+
+// Everything that costs money if it waits, most urgent first.
+function doNow(open) {
+  const rows = [];
+  const add = (key, kind, title, text, attrs, button) => rows.push(h('div', { class: 'move-row', 'data-key': key },
+    h('span', { class: kind === 'fix' ? 'pill warn' : 'pill' }, { fix: 'Now', stock: 'Stock', price: 'Price' }[kind]),
+    h('div', {}, h('b', {}, title), h('p', {}, text)),
+    button ? h('button', Object.assign({ type: 'button', class: 'tool' }, attrs), button) : null));
+  for (const o of open.slice(0, 4)) {
+    add('o' + o.id, 'fix', o.title, `${o.buyer}, ${o.quantity} for ${o.total}${o.deadline ? ', ' + clock(o) + ' left' : ''}`, { 'data-do': 'tab', 'data-value': 'orders' }, 'Deliver');
+  }
+  for (const o of state.offers.filter(x => x.unsaved).slice(0, 3)) add('u' + o.id, 'fix', `${o.title}: not on Eldorado`, o.unsaved, { 'data-do': 'openOffer', 'data-offer': o.id }, 'Open');
+  const empty = state.offers.filter(o => isLive(o) && Number(o.stockDraft) === 0).sort((a, b) => b.sold - a.sold);
+  for (const o of empty.slice(0, 3)) add('e' + o.id, 'stock', `${o.title} is out of stock`, o.sold ? `${plural(o.sold, 'sale')} in 30 days` : 'No stock', { 'data-do': 'openOffer', 'data-offer': o.id }, 'Restock');
+  // Days left at the 30-day pace. Currency stock counts another unit than its orders, so it stays out.
+  const low = state.offers.filter(o => isLive(o) && o.kind !== 'Currency' && o.sold >= 2 && Number(o.stockDraft) > 0)
+    .map(o => ({ o, days: Number(o.stockDraft) / (o.sold / 30) })).filter(x => x.days < 5).sort((a, b) => a.days - b.days);
+  for (const { o, days } of low.slice(0, 3)) add('l' + o.id, 'stock', `${o.title}: ${o.stockDraft} left`, `About ${Math.max(1, Math.round(days))} ${Math.round(days) <= 1 ? 'day' : 'days'} at this pace`, { 'data-do': 'openOffer', 'data-offer': o.id }, 'Restock');
+  return h('section', { class: 'card moves' },
+    h('header', {}, h('h3', {}, 'Do now'), h('span', {}, rows.length ? plural(rows.length, 'thing') : '')),
+    rows.length ? rows : h('p', { class: 'hint' }, 'Nothing waiting.'));
+}
+
+// Offers priced away from where sales happen. Below the range leaves money behind, above it loses buyers.
+function opportunities() {
+  const list = state.offers.filter(o => o.listed).map(o => ({ o, p: priceOf(o) }))
+    .filter(x => x.p && (x.p.verdict === 'low' || x.p.verdict === 'high') && x.p.suggest)
+    .map(x => Object.assign(x, { gain: (x.p.suggest - x.o.livePrice) * Math.max(x.o.sold, 1) }))
+    .sort((a, b) => Math.abs(b.gain) - Math.abs(a.gain)).slice(0, 6);
+  return h('section', { class: 'card moves' },
+    h('header', {}, h('h3', {}, 'Price checks'), h('span', {}, 'vs this week’s sales')),
+    list.length ? list.map(({ o, p }) => h('div', { class: 'move-row', 'data-key': 'p' + o.id, 'data-id': o.id },
+      h('span', { class: p.verdict === 'low' ? 'pill up' : 'pill warn' }, p.verdict === 'low' ? 'Raise' : 'High'),
+      h('div', {}, h('b', {}, o.title), h('p', {}, `You ${fit(o.livePrice)} · sales ${fit(p.from)}–${fit(p.to)}`)),
+      h('div', { class: 'acts' },
+        h('button', { type: 'button', class: 'tool', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, 'Set ' + fit(p.suggest)),
+        h('button', { type: 'button', class: 'tool', 'data-do': 'openOffer', 'data-offer': o.id }, 'Open'))))
+      : h('p', { class: 'hint' }, Object.keys(state.pricing || {}).length
+        ? 'All prices are in range.'
+        : 'Waiting for market data.'));
+}
+
+function moversCard() {
+  const rows = ((state.insights && state.insights.market && state.insights.market.rows) || []).filter(r => !r.offer).slice(0, 6);
+  return h('section', { class: 'card moves' },
+    h('header', {}, h('h3', {}, 'Selling, not in your shop'), h('span', {}, '7 days')),
+    rows.length ? rows.map(r => h('div', { class: 'move-row mover', 'data-key': 'm' + r.key },
+      r.picture ? h('img', { class: 'thumb', src: r.picture, alt: '', draggable: 'false' }) : h('span', { class: 'thumb none' }),
+      h('div', {}, h('b', {}, r.name), h('p', {}, `${plural(r.drops, 'sale')}${r.soldAt ? ' · ' + r.soldAt : ''}`)),
+      r.topLink ? h('button', { type: 'button', class: 'tool', 'data-do': 'openTop', 'data-url': r.topLink }, 'See offer') : null))
+      : h('p', { class: 'hint' }, 'Waiting for market data.'));
+}
+
+// ---------- customers ----------
+
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const shortDay = stamp => new Date(stamp).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+
+// Seven rows of 24 cells. Darker means more orders in that hour, so quiet nights and busy evenings show at a glance.
+function heatmap(grid) {
+  const peak = Math.max(1, ...grid.flat());
+  return h('section', { class: 'card heat' },
+    h('header', {}, h('h3', {}, 'When orders come in'), h('span', { id: 'tip', role: 'status', 'data-rest': 'Local time' }, 'Local time')),
+    h('div', { class: 'heat-grid', role: 'img', 'aria-label': 'Orders by weekday and hour' },
+      h('span', {}), [0, 3, 6, 9, 12, 15, 18, 21].map(hour => h('span', { class: 'heat-hour' }, String(hour).padStart(2, '0'))),
+      grid.map((row, d) => [
+        h('span', { class: 'heat-day' }, DAYS[d]),
+        h('div', { class: 'heat-row' }, row.map((count, hour) => h('i', {
+          'data-level': count ? Math.ceil(count / peak * 4) : 0,
+          'data-tip': `${DAYS[d]} ${String(hour).padStart(2, '0')}:00, ${plural(count, 'order')}`,
+        }))),
+      ])));
+}
+
+function buyerTable(title, note, list, blank) {
+  return h('section', { class: 'card items buyers' },
+    h('header', {}, h('h3', {}, title), note ? h('span', {}, note) : null),
+    list.length ? h('table', {},
+      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Buyer'), ['Orders', 'Spent', 'Buys every', 'Last'].map(t => h('th', { scope: 'col', class: 'n' }, t)), h('th', { scope: 'col' }, 'Buys'))),
+      h('tbody', {}, list.map(b => h('tr', { 'data-key': title + b.name },
+        h('td', {}, h('b', {}, b.name), b.problems.length ? h('div', { class: 'tags' }, b.problems.map(p => h('span', { class: 'pill warn' }, p))) : null),
+        h('td', { class: 'n' }, b.orders), h('td', { class: 'n' }, dollars(b.spent)),
+        h('td', { class: 'n quiet' }, b.every || 'Once'), h('td', { class: 'n quiet' }, shortDay(b.last)),
+        h('td', { class: 'buys' }, b.items.join(', ')))))) : h('p', { class: 'hint' }, blank));
+}
+
+function customersPage() {
+  const c = state.customers;
+  if (!c) return h('p', { class: 'empty' }, 'Reading your orders.');
+  const small = text => h('small', {}, text);
+  return h('div', { class: 'scroll sales customers' },
+    h('div', { class: 'stats' },
+      stat('Buyers', c.buyers, small(`${c.newThisWeek} new this week, last ${c.days} days`), true),
+      stat('Came back', `${c.repeat} of ${c.buyers}`, small(c.repeat ? `${c.repeatShare}% of what you sold came from them` : 'Nobody bought twice yet')),
+      stat('Average order', dollars(c.average), small('What one order brings in')),
+      stat('Time between orders', c.gap || 'None yet', small('Typical gap for buyers who come back'))),
+    heatmap(c.grid),
+    h('div', { class: 'duo' },
+      buyerTable('Best buyers', 'By what they spent', c.top, 'No buyers yet.'),
+      h('div', { class: 'stack' },
+        buyerTable('Worth watching', 'Disputes, bad reviews or repeated cancels', c.trouble, 'None.'),
+        h('section', { class: 'card pairs' },
+          h('header', {}, h('h3', {}, 'Bought together'), h('span', {}, 'By the same buyer')),
+          c.pairs.length ? c.pairs.map(p => h('div', { class: 'pair', 'data-key': p.a + p.b },
+            h('b', {}, p.a), h('span', { class: 'plus' }, '+'), h('b', {}, p.b), h('small', {}, plural(p.buyers, 'buyer'))))
+            : h('p', { class: 'hint' }, 'None yet.')))));
+}
+
+// ---------- finance ----------
+
+let financeShown = 'open';     // open: still has unassigned units
+let financePick = null;        // { kind: 'order' | 'person' | 'new', id }
+const assignDraft = {};        // orderId -> { personId: units }
+const finDraft = { name: '', note: '', amount: '', date: '', payNote: '', from: '', until: '', editName: null, editNote: null, editSeen: 0 };
+
+const ledger = () => (state.finance && state.finance.ledger) || null;
+const people = (all) => (ledger() ? ledger().people : []).filter(p => all || !p.archived);
+const personName = id => (people(true).find(p => p.id === id) || {}).name || 'Removed';
+const ledgerOrder = id => (ledger() && ledger().orders[id]) || null;
+const assignedUnits = o => { const l = ledgerOrder(o.id); return l ? l.shares.reduce((a, s) => a + s.units, 0) : 0; };
+const balanceOf = id => (ledger() ? ledger().summary : []).find(s => s.person === id) || { earned: 0, paid: 0, balance: 0, units: 0, orders: 0 };
+const sales90 = () => state.orders.filter(o => o.sale && o.placed >= Date.now() - 90 * 864e5);
+
+function financeOrders() {
+  const list = sales90();
+  if (financeShown === 'open') return list.filter(o => assignedUnits(o) < o.quantity);
+  if (financeShown === 'done') return list.filter(o => assignedUnits(o) >= o.quantity);
+  return list;
+}
+
+// The ledger's "changed" stamp each draft started from; the server refuses a save if another PC saved since.
+const draftSeen = {};
+const changedOf = record => (record && record.changed) || 0;
+
+function draftFor(o) {
+  if (!assignDraft[o.id]) {
+    const l = ledgerOrder(o.id);
+    assignDraft[o.id] = {};
+    draftSeen[o.id] = changedOf(l);
+    if (l) for (const s of l.shares) assignDraft[o.id][s.person] = s.units;
+  }
+  return assignDraft[o.id];
+}
+
+function personCard(p) {
+  const b = balanceOf(p.id);
+  const on = financePick && financePick.kind === 'person' && financePick.id === p.id;
+  return h('button', { type: 'button', class: on ? 'person on' : 'person', 'data-do': 'pickPerson', 'data-value': p.id, 'data-key': 'p' + p.id },
+    h('span', { class: 'avatar', 'aria-hidden': 'true' }, p.name.slice(0, 1).toUpperCase()),
+    h('span', { class: 'who' }, h('b', {}, p.name), h('small', {}, `${plural(b.units, 'unit')}, earned ${dollars(b.earned)}`)),
+    h('span', { class: b.balance > 0.004 ? 'owed' : 'owed clear' }, h('small', {}, b.balance > 0.004 ? 'You owe' : 'Settled'), dollars(Math.abs(b.balance))));
+}
+
+function sharesCell(o) {
+  const l = ledgerOrder(o.id);
+  if (!l || !l.shares.length) return h('span', { class: 'pill warn' }, 'Not assigned');
+  const left = o.quantity - assignedUnits(o);
+  return h('div', { class: 'tags' }, l.shares.map(s => h('span', { class: 'pill' }, `${personName(s.person)} ${s.units}`)),
+    left > 0 ? h('span', { class: 'pill warn' }, `${left} left`) : null);
+}
+
+function assignPanel(o) {
+  const draft = draftFor(o);
+  const total = Object.values(draft).reduce((a, n) => a + (Number(n) || 0), 0);
+  const l = ledgerOrder(o.id);
+  const list = people(false);
+  return h('aside', { 'aria-label': 'Assign order' },
+    h('div', { class: 'head' }, h('div', {}, h('h2', {}, o.title), h('small', {}, `${o.buyer}, ${dayOf(o.placed)}`))),
+    h('dl', { class: 'facts' },
+      h('dt', {}, 'Units'), h('dd', {}, o.quantity),
+      h('dt', {}, 'Order total'), h('dd', {}, o.total),
+      l ? [h('dt', {}, 'After Eldorado fee'), h('dd', {}, dollars(l.net), ' ', h('small', { class: 'quiet' }, l.netExact ? 'exact' : 'estimate until it clears'))] : null),
+    list.length ? [
+      h('h3', { class: 'sub' }, 'Whose units are these?'),
+      h('div', { class: 'quickgive' }, list.map(p => h('button', { type: 'button', class: 'tool', 'data-do': 'giveAll', 'data-value': p.id }, `All to ${p.name}`))),
+      h('div', { class: 'shares' }, list.map(p => h('label', { class: 'share-row', 'data-key': 's' + p.id },
+        h('span', {}, p.name),
+        h('div', { class: 'quick' },
+          h('button', { type: 'button', tabindex: -1, 'data-do': 'shareStep', 'data-value': p.id, 'data-dir': -1, 'aria-label': p.name + ' fewer' }, minus()),
+          h('input', { 'data-fin': 'units', 'data-person': p.id, value: draft[p.id] || '', placeholder: '0', inputmode: 'numeric', autocomplete: 'off' }),
+          h('button', { type: 'button', tabindex: -1, 'data-do': 'shareStep', 'data-value': p.id, 'data-dir': 1, 'aria-label': p.name + ' more' }, plus())),
+        l && l.quantity ? h('small', { class: 'quiet' }, dollars(l.net * (Number(draft[p.id]) || 0) / l.quantity)) : null))),
+      h('p', { class: total > o.quantity ? 'note bad' : 'note' }, total > o.quantity ? `That's ${total} units, the order has ${o.quantity}.` : `${total} of ${o.quantity} units assigned`),
+      h('div', { class: 'acts' },
+        h('button', { type: 'button', class: 'solid', 'data-do': 'saveShares', disabled: total > o.quantity || state.finance.busy }, 'Save'),
+        l ? h('button', { type: 'button', class: 'line', 'data-do': 'clearShares' }, 'Unassign') : null),
+    ] : h('p', { class: 'insight' }, 'Add a person first.'),
+    h('p', { class: 'note', role: 'status' }, state.finance.note));
+}
+
+function personPanel(p) {
+  const b = balanceOf(p.id);
+  const l = ledger();
+  const theirs = Object.entries(l.orders).filter(([, o]) => o.shares.some(s => s.person === p.id))
+    .sort((a, b2) => (b2[1].placed > a[1].placed ? 1 : -1)).slice(0, 30);
+  const pays = l.payments.filter(x => x.person === p.id).sort((a, b2) => (b2.date > a.date ? 1 : -1));
+  const editing2 = finDraft.editName !== null;
+  return h('aside', { 'aria-label': 'Person' },
+    h('div', { class: 'head' },
+      h('span', { class: 'avatar big', 'aria-hidden': 'true' }, p.name.slice(0, 1).toUpperCase()),
+      h('div', {}, h('h2', {}, p.name), p.note ? h('small', {}, p.note) : null)),
+    h('div', { class: 'balance' },
+      h('div', {}, h('small', {}, 'Earned'), h('b', {}, dollars(b.earned))),
+      h('div', {}, h('small', {}, 'Paid'), h('b', {}, dollars(b.paid))),
+      h('div', { class: b.balance > 0.004 ? 'due' : '' }, h('small', {}, b.balance > 0.004 ? 'You owe' : b.balance < -0.004 ? 'Paid ahead' : 'Settled'), h('b', {}, dollars(Math.abs(b.balance))))),
+    h('h3', { class: 'sub' }, 'Record a payment'),
+    h('div', { class: 'payform' },
+      h('input', { 'data-fin': 'amount', value: finDraft.amount, placeholder: b.balance > 0 ? b.balance.toFixed(2) : 'Amount', inputmode: 'decimal', 'aria-label': 'Amount paid' }),
+      h('input', { 'data-fin': 'date', type: 'date', value: finDraft.date || new Date().toISOString().slice(0, 10), 'aria-label': 'Date' }),
+      h('input', { 'data-fin': 'payNote', value: finDraft.payNote, placeholder: 'Note, like card or crypto', 'aria-label': 'Note' }),
+      h('button', { type: 'button', class: 'solid', 'data-do': 'addPayment', disabled: state.finance.busy }, 'Add')),
+    h('p', { class: 'note', role: 'status' }, state.finance.note),
+    h('h3', { class: 'sub' }, 'Work list for settling'),
+    h('div', { class: 'payform' },
+      h('label', {}, 'From', h('input', { 'data-fin': 'from', type: 'date', value: finDraft.from })),
+      h('label', {}, 'To', h('input', { 'data-fin': 'until', type: 'date', value: finDraft.until })),
+      h('button', { type: 'button', class: 'line', 'data-do': 'exportPerson' }, 'Export to Excel')),
+    pays.length ? [h('h3', { class: 'sub' }, 'Payments'), h('table', { class: 'mini' }, h('tbody', {}, pays.map(x => h('tr', { 'data-key': x.id },
+      h('td', { class: 'quiet' }, x.date), h('td', {}, x.note), h('td', { class: 'n' }, dollars(x.amount)),
+      h('td', { class: 'n' }, h('button', { type: 'button', class: 'x', 'data-do': 'deletePayment', 'data-value': x.id, 'aria-label': 'Remove payment' }, cross()))))))] : null,
+    theirs.length ? [h('h3', { class: 'sub' }, 'Latest work'), h('table', { class: 'mini' }, h('tbody', {}, theirs.map(([id, o]) => {
+      const units = o.shares.filter(s => s.person === p.id).reduce((a, s) => a + s.units, 0);
+      return h('tr', { 'data-key': id },
+        h('td', { class: 'quiet' }, shortDay(Date.parse(o.placed))), h('td', {}, o.title), h('td', { class: 'n' }, `${units}/${o.quantity}`),
+        h('td', { class: 'n' }, dollars(o.net * units / Math.max(1, o.quantity)), o.netExact ? null : h('small', { class: 'quiet', title: 'Estimate until Eldorado clears the order' }, ' est'))); })))] : null,
+    editing2
+      ? h('div', { class: 'payform' },
+        h('input', { 'data-fin': 'editName', value: finDraft.editName, 'aria-label': 'Name' }),
+        h('input', { 'data-fin': 'editNote', value: finDraft.editNote, placeholder: 'Note', 'aria-label': 'Note' }),
+        h('button', { type: 'button', class: 'solid', 'data-do': 'savePerson' }, 'Save'))
+      : h('div', { class: 'acts' },
+        h('button', { type: 'button', class: 'line', 'data-do': 'editPerson' }, 'Rename'),
+        h('button', { type: 'button', class: 'line', 'data-do': 'archivePerson' }, p.archived ? 'Bring back' : 'Hide from lists')));
+}
+
+function newPersonPanel() {
+  return h('aside', { 'aria-label': 'Add person' },
+    h('div', { class: 'head' }, h('div', {}, h('h2', {}, 'Add person'), h('small', {}, 'Someone whose stock you sell'))),
+    h('label', { class: 'field' }, 'Name', h('input', { 'data-fin': 'name', value: finDraft.name, autocomplete: 'off' })),
+    h('label', { class: 'field' }, 'Note', h('input', { 'data-fin': 'note', value: finDraft.note, placeholder: 'Optional, like how you pay them', autocomplete: 'off' })),
+    h('div', { class: 'acts' }, h('button', { type: 'button', class: 'solid', 'data-do': 'addPerson', disabled: state.finance.busy }, 'Add')),
+    h('p', { class: 'note', role: 'status' }, state.finance.note));
+}
+
+function financePage() {
+  if (!state.hub) {
+    return h('div', { class: 'empty setup' },
+      h('h2', {}, 'Finance needs your server'),
+      h('p', {}, 'Settings, Eldorado key, Shared server.'),
+      h('button', { type: 'button', class: 'solid', 'data-do': 'settings' }, 'Open Settings'));
+  }
+  if (!state.finance.ready) return h('p', { class: 'empty' }, state.finance.note || 'Reading the ledger from your server.');
+  const list = financeOrders();
+  const open = sales90().filter(o => assignedUnits(o) < o.quantity).length;
+  if (!financePick || (financePick.kind === 'person' && !people(true).some(p => p.id === financePick.id))) financePick = list[0] ? { kind: 'order', id: list[0].id } : null;
+  const pickOrder = financePick && financePick.kind === 'order' ? state.orders.find(o => o.id === financePick.id) : null;
+  const pickPerson = financePick && financePick.kind === 'person' ? people(true).find(p => p.id === financePick.id) : null;
+  const owed = (ledger().summary || []).reduce((a, s) => a + Math.max(0, s.balance), 0);
+  return [
+    h('div', { class: 'people' },
+      people(false).map(personCard),
+      h('button', { type: 'button', class: financePick && financePick.kind === 'new' ? 'person add on' : 'person add', 'data-do': 'newPerson', 'data-key': 'add' }, plus(), 'Add person'),
+      h('div', { class: 'end' },
+        h('span', { class: 'owed-all' }, h('small', {}, 'You owe in total'), dollars(owed)),
+        h('button', { type: 'button', class: 'tool', 'data-do': 'exportAll' }, 'Export everyone'))),
+    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['done', 'Assigned'], ['all', 'All, 90 days']], financeShown, 'financeShown')),
+    h('div', { class: 'work' },
+      h('div', { class: 'list' }, list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders finance' },
+        h('colgroup', {}, ['placed', 'item', 'buyer', 'qty', 'total', 'whose'].map(c => h('col', { class: 'f-' + c }))),
+        h('thead', {}, h('tr', {}, ['Placed', 'Order', 'Buyer', 'Qty', 'Total', 'Whose'].map(t => h('th', { scope: 'col' }, t)))),
+        h('tbody', {}, list.map(o => h('tr', {
+          'data-key': o.id, 'data-do': 'pickFinOrder', 'data-order': o.id, tabindex: 0,
+          class: pickOrder && o.id === pickOrder.id ? 'on' : null,
+        },
+          h('td', { class: 'quiet' }, dayOf(o.placed)), h('td', {}, h('b', {}, o.title)), h('td', {}, o.buyer),
+          h('td', {}, o.quantity), h('td', {}, o.total), h('td', {}, sharesCell(o)))))))
+        : h('p', { class: 'empty' }, financeShown === 'open' ? 'All assigned.' : 'No orders here.')),
+      pickPerson ? personPanel(pickPerson) : financePick && financePick.kind === 'new' ? newPersonPanel() : pickOrder ? assignPanel(pickOrder) : null)];
+}
+
 // ---------- drawing ----------
 
-const PAGES = { offers: offersPage, orders: ordersPage, sales: salesPage, insights: insightsPage };
+const PAGES = { home: homePage, offers: offersPage, orders: ordersPage, sales: salesPage, customers: customersPage, finance: financePage, insights: insightsPage };
 
 function draw() {
   document.body.dataset.theme = state.theme === 'light' ? 'light' : 'dark';
@@ -697,6 +1065,7 @@ function draw() {
   // The page's security policy refuses style attributes, but not styles set from script.
   for (const node of document.querySelectorAll('[data-height]')) node.style.height = node.dataset.height + '%';
   for (const node of document.querySelectorAll('[data-width]')) node.style.width = node.dataset.width + '%';
+  for (const node of document.querySelectorAll('[data-left]')) node.style.left = node.dataset.left + '%';
   tick();
 }
 
@@ -754,6 +1123,83 @@ const CLICKS = {
   },
   flipTheme: () => send('theme', { value: state.theme === 'light' ? 'dark' : 'light' }),
   sortFlip: () => send('sortFlip', {}),
+  retry: target => send('retry', { id: rowOf(target) }),
+  discard: target => send('cancel', { id: rowOf(target) }),
+  retryAll: () => send('retryAll', {}),
+  useSuggested: target => send('enterPrice', { id: rowOf(target), text: target.dataset.value }),
+  financeShown(target) {
+    financeShown = target.dataset.value;
+    financePick = null;
+    draw();
+  },
+  pickFinOrder(target) {
+    financePick = { kind: 'order', id: target.dataset.order };
+    draw();
+  },
+  pickPerson(target) {
+    financePick = { kind: 'person', id: target.dataset.value };
+    finDraft.editName = finDraft.editNote = null;
+    finDraft.amount = finDraft.payNote = '';
+    draw();
+  },
+  newPerson() {
+    financePick = { kind: 'new' };
+    draw();
+  },
+  addPerson() {
+    send('addPerson', { name: finDraft.name, note: finDraft.note });
+    finDraft.name = finDraft.note = '';
+  },
+  giveAll(target) {
+    const o = state.orders.find(x => x.id === financePick.id);
+    if (!o) return;
+    if (!(o.id in draftSeen)) draftSeen[o.id] = changedOf(ledgerOrder(o.id));
+    assignDraft[o.id] = { [target.dataset.value]: o.quantity };
+    draw();
+  },
+  shareStep(target) {
+    const o = state.orders.find(x => x.id === financePick.id);
+    if (!o) return;
+    const draft = draftFor(o);
+    draft[target.dataset.value] = Math.max(0, (Number(draft[target.dataset.value]) || 0) + Number(target.dataset.dir));
+    draw();
+  },
+  saveShares() {
+    const id = financePick.id;
+    const draft = assignDraft[id] || {};
+    const changed = id in draftSeen ? draftSeen[id] : changedOf(ledgerOrder(id));
+    send('assign', { order: id, changed, shares: Object.entries(draft).filter(([, n]) => Number(n) > 0).map(([person, units]) => ({ person, units: Number(units) })) });
+    delete assignDraft[id];
+    delete draftSeen[id];
+  },
+  clearShares() {
+    send('assign', { order: financePick.id, changed: changedOf(ledgerOrder(financePick.id)), shares: [] });
+    delete assignDraft[financePick.id];
+    delete draftSeen[financePick.id];
+  },
+  addPayment() {
+    const b = balanceOf(financePick.id);
+    send('addPayment', { person: financePick.id, amount: finDraft.amount || (b.balance > 0 ? b.balance.toFixed(2) : ''), date: finDraft.date || new Date().toISOString().slice(0, 10), note: finDraft.payNote });
+    finDraft.amount = finDraft.payNote = '';
+  },
+  deletePayment: target => send('deletePayment', { payment: target.dataset.value }),
+  exportPerson: () => send('exportFinance', { person: financePick.id, from: finDraft.from, until: finDraft.until }),
+  exportAll: () => send('exportFinance', { person: '', from: finDraft.from, until: finDraft.until }),
+  editPerson() {
+    const p = people(true).find(x => x.id === financePick.id);
+    finDraft.editName = p.name;
+    finDraft.editNote = p.note || '';
+    finDraft.editSeen = changedOf(p);
+    draw();
+  },
+  savePerson() {
+    send('editPerson', { person: financePick.id, changed: finDraft.editSeen, name: finDraft.editName, note: finDraft.editNote });
+    finDraft.editName = finDraft.editNote = null;
+  },
+  archivePerson() {
+    const p = people(true).find(x => x.id === financePick.id);
+    send('editPerson', { person: p.id, changed: changedOf(p), archived: !p.archived });
+  },
   period: target => send('salesDays', { days: +target.dataset.value }),
   openOffer(target) {
     const offer = state.offers.find(o => o.id === target.dataset.offer);
@@ -836,6 +1282,14 @@ document.addEventListener('input', event => {
     editing = node;
     const [type, data] = editMessage(node, 'typed');
     send(type, data);
+  } else if (node.dataset.fin) {
+    editing = node;
+    if (node.dataset.fin === 'units') {
+      draftFor(state.orders.find(x => x.id === financePick.id))[node.dataset.person] = node.value.replace(/\D/g, '');
+      draw();
+    } else {
+      finDraft[node.dataset.fin] = node.value;
+    }
   } else if (node.dataset.bulk === 'percent') {
     bulk.percent = node.value;
     bulk.ask = null;
@@ -903,7 +1357,10 @@ document.addEventListener('keydown', event => {
   const node = event.target;
   const typing = node.tagName === 'INPUT' || node.tagName === 'SELECT';
   const field = node.dataset.edit;
-  if (event.ctrlKey && event.key.toLowerCase() === 'f') {
+  if (event.ctrlKey && ['=', '+', '-', '0'].includes(event.key)) {
+    event.preventDefault();
+    send('zoom', { step: event.key === '0' ? 0 : event.key === '-' ? -1 : 1 });
+  } else if (event.ctrlKey && event.key.toLowerCase() === 'f') {
     event.preventDefault();
     if (tab !== 'offers') {
       tab = 'offers';
@@ -941,6 +1398,9 @@ window.managerState = next => {
 };
 
 setInterval(tick, 1000);
+addEventListener('resize', () => draw());
+// A drawing error leaves the page stale with no sign, so it goes to the app's log instead.
+addEventListener('error', event => send('pageError', { text: `${event.message} at ${event.lineno}:${event.colno}` }));
 
 if (host) {
   host.addEventListener('message', event => window.managerState(event.data));

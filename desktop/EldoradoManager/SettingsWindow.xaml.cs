@@ -36,6 +36,8 @@ namespace EldoradoManager
             TokenBox.Password = this.existing.Token;
             SellerIdBox.Text = this.existing.SellerId;
             SellerSecretBox.Password = this.existing.SellerSecret;
+            HubUrlBox.Text = this.existing.HubUrl;
+            HubTokenBox.Password = this.existing.HubToken;
             VolumeBox.Value = this.existing.Volume;
             (this.existing.Ring ? RingOn : RingOff).IsChecked = true;
             var firstRun = this.existing.Topic.Length == 0 || existing == null;
@@ -103,6 +105,9 @@ namespace EldoradoManager
                 Theme = Skin.Current.Name,
                 SellerId = SellerIdBox.Text.Trim(),
                 SellerSecret = SellerSecretBox.Password.Trim(),
+                HubUrl = HubUrlBox.Text.Trim().TrimEnd('/'),
+                HubToken = HubTokenBox.Password.Trim(),
+                Zoom = existing.Zoom,
             };
             if (!keysOnly && !config.IsSetUp)
             {
@@ -138,6 +143,17 @@ namespace EldoradoManager
         private string Test(Config config)
         {
             var error = keysOnly || !config.HasAlarms ? null : config.TestConnection();
+            if (error == null && config.HasHub)
+            {
+                try
+                {
+                    new Hub(config.HubUrl, config.HubToken).Ledger();
+                }
+                catch (MarketError problem)
+                {
+                    return "Shared server: " + problem.Message;
+                }
+            }
             if (error != null || !config.HasSellerKey) return error;
             try
             {

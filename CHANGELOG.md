@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.5.0
+
+- Windows: a **Home** tab opens first, with today's sales, what needs you now, price checks and items worth adding
+- Windows: an edit Eldorado refuses stays on its row in red with the value you typed, a reason, **Send again** and **Discard my change**. Before, the row went back to the old price and the error showed only in the side panel, so a sale could go through at a price you thought you'd changed. A rate-limit refusal goes again every 90 seconds, and the app reads your offers after each save to check the new price is there.
+- Windows: **Reopen offer** sends the stock before the price. Eldorado refuses a price on an offer with no stock, and some offers need a minimum stock, which the red line now names.
+- Windows: a **Sold at** column on the Offers tab, and a price range in the side panel built from the sales other sellers made this week, with **Set price to** the middle of them
+- Windows: a **Customers** tab with repeat buyers, a weekday and hour grid, best buyers, buyers worth watching, and items bought together
+- Windows: a **Finance** tab. Assign each sale's units to the people you sell for, record what you pay them, and export each person's work list to Excel. Shares count the money after Eldorado's fee.
+- Windows: the dashboard sizes itself to your screen, and Ctrl with + or - changes it
+- Server: a market hub reads the public listings once for every PC and serves them at `GET /api/market`. Point the Windows app at it under **Settings > Eldorado key > Shared server**, and your PCs stop sharing one rate limit.
+- Server: a finance ledger at `/api/ledger`, with fees read from Eldorado's sales export once an order clears. New settings: `MARKET_ENABLED`, `MARKET_PASS_SECONDS`, `MARKET_SWEEP_MINUTES`, `MARKET_FILE`, `LEDGER_FILE`.
+- Server: the market and finance API answer only when `DASHBOARD_TOKEN` is set. The local web page works without one, as before.
+- Server: when two PCs edit the same order or person, the second save gets "Changed on another PC" and the app shows what the first one saved, so neither edit vanishes
+- Server: a write without `Content-Length` gets 411 instead of reading as empty, and saving an order needs its `shares` list, so a lost request body can't remove an order
+- Server: the ledger syncs each save to disk, keeps a damaged file aside instead of writing over it, and refuses amounts above 1,000,000,000 and duplicate names
+
 ## 1.4.0
 
 The code follows the new name. If you run the server, update your commands:
