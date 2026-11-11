@@ -88,7 +88,7 @@ function morph(old, next) {
   const flipped = old.getAttribute('data-flip') !== next.getAttribute('data-flip') && old.hasAttribute('data-flip');
   for (const { name } of [...old.attributes]) if (!next.hasAttribute(name)) old.removeAttribute(name);
   for (const { name, value } of [...next.attributes]) if (old.getAttribute(name) !== value) old.setAttribute(name, value);
-  if (old.nodeName === 'INPUT' && old !== editing && old.value !== next.value) old.value = next.value;
+  if ((old.nodeName === 'INPUT' || old.nodeName === 'TEXTAREA') && old !== editing && old.value !== next.value) old.value = next.value;
   if (flipped) flip(old);
 
   const keyed = new Map();
@@ -360,6 +360,13 @@ function offerTable(list, pick) {
 
 const priceOf = o => (state.pricing || {})[o.id] || null;
 
+// Profit needs the shared ledger: your cost per unit is kept there, beside Eldorado's fee rates from your sales export.
+const costOf = o => { const c = ledger() && (ledger().costs || {})[o.id]; return c ? c.cost : null; };
+const feeOf = o => { const r = (ledger() && ledger().feeRates) || {}; return o.kind === 'Currency' ? (r.Currency ?? 0.05) : (r.Items ?? 0.15); };
+const keepAt = (o, price) => { const c = costOf(o); return c === null ? null : price * (1 - feeOf(o)) - c; };
+const buyerNote = name => { const b = ledger() && name && (ledger().buyers || {})[name.toLowerCase()]; return b ? b.note : ''; };
+const belowCost = (o, price) => { const k = keepAt(o, price); return k !== null && k < 0; };
+
 // The price sales actually happened at, which is the number to price against, not the cheapest listing.
 function soldAtCell(o) {
   const p = priceOf(o);
@@ -422,6 +429,7 @@ function priceBand(o) {
       h('span', { class: 'quiet' }, 'New price'), h('b', {}, fit(you)),
       h('span', {}, `#${rank.place} of ${rank.of} listed`),
       h('span', { class: 'quiet' }, versus === 0 ? 'at the typical sale' : `${Math.abs(versus)}% ${versus > 0 ? 'above' : 'below'} the typical sale`),
+      keepAt(o, you) === null ? null : h('span', { class: belowCost(o, you) ? 'loss' : 'gain' }, belowCost(o, you) ? `lose ${fit(-keepAt(o, you))}` : `keep ${fit(keepAt(o, you))}`),
       h('div', { class: 'acts' },
         h('button', { type: 'button', class: 'solid', 'data-do': 'dragSave', disabled: Math.abs(you - o.livePrice) < 0.00001 }, 'Save price'),
         h('button', { type: 'button', class: 'line', 'data-do': 'dragCancel' }, 'Cancel'))) : null,
@@ -433,7 +441,9 @@ function priceBand(o) {
       h('dt', {}, 'Sold the most'), h('dd', {}, p.topLink ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': p.topLink }, `${p.topSeller} at ${fit(p.topPrice)}, ${plural(p.topSales, 'sale')}`) : p.topSeller)),
     h('p', { class: 'insight ' + (p.verdict || '') }, p.advice),
     p.suggest && Math.abs(p.suggest - o.livePrice) > 0.00001 && o.listed
-      ? h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, `Set price to ${fit(p.suggest)}`))
+      ? belowCost(o, p.suggest)
+        ? h('p', { class: 'keep loss' }, `${fit(p.suggest)} would be below your cost, so it isn't suggested.`)
+        : h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, `Set price to ${fit(p.suggest)}`))
       : null,
     null);
 }
@@ -525,10 +535,25 @@ function panel(o) {
     where(o),
     gaps(o),
     cheaperLine(o),
+    profitBox(o),
     priceBand(o),
     h('p', { class: 'note', role: 'status' }, o.note),
     actions(o),
     rivals(o));
+}
+
+// What one sale leaves you after Eldorado's fee and your own cost.
+function profitBox(o) {
+  if (!ledger()) return null;
+  const cost = costOf(o), keep = keepAt(o, o.livePrice), fee = Math.round(feeOf(o) * 100);
+  return h('section', { class: 'profit' },
+    h('label', {}, h('span', {}, 'What one unit costs you'),
+      h('input', { class: 'cost', 'data-cost': o.id, 'data-title': o.title, value: cost === null ? '' : String(cost), placeholder: 'Not set',
+        inputmode: 'decimal', autocomplete: 'off', spellcheck: 'false', title: 'What you pay for one unit of this offer. Press Enter to save, clear it to remove.' })),
+    cost === null
+      ? h('p', { class: 'hint' }, `Add it to see what you keep after the ${fee}% fee.`)
+      : h('p', { class: 'keep' + (keep < 0 ? ' loss' : '') }, keep < 0 ? `You lose ${fit(-keep)} a sale` : `You keep ${fit(keep)} a sale`,
+          h('small', {}, `at ${fit(o.livePrice)}, after the ${fee}% fee`)));
 }
 
 function bulkPanel() {
@@ -593,7 +618,7 @@ function ordersPage() {
           'data-key': o.id, 'data-do': 'pickOrder', 'data-order': o.id, tabindex: 0,
           class: pick && o.id === pick.id ? 'on' : null, 'aria-selected': String(!!pick && o.id === pick.id),
         },
-          h('td', {}, dueCell(o)), h('td', {}, h('b', {}, o.title)), h('td', {}, o.buyer), h('td', {}, o.quantity), h('td', {}, o.total),
+          h('td', {}, dueCell(o)), h('td', {}, h('b', {}, o.title)), h('td', {}, o.buyer, buyerNote(o.buyer) ? h('small', { class: 'buyer-tag', title: buyerNote(o.buyer) }, buyerNote(o.buyer)) : null), h('td', {}, o.quantity), h('td', {}, o.total),
           h('td', {}, o.state), h('td', { class: o.review === 'Negative' ? 'bad' : null }, o.review))))))
         : h('p', { class: 'empty' }, ordersShown === 'open' ? 'Nothing to deliver right now.' : 'Reading your orders.')),
       pick ? orderPanel(pick) : null)];
@@ -604,6 +629,8 @@ function orderPanel(o) {
   return h('aside', { 'aria-label': 'Selected order' },
     h('div', { class: 'head' }, h('div', {}, h('h2', {}, o.title))),
     h('dl', { class: 'facts' }, facts.filter(([, value]) => value).map(([label, value]) => [h('dt', {}, label), h('dd', {}, value)])),
+    ledger() && o.buyer ? h('label', { class: 'buyer-note' }, h('span', {}, `Your note on ${o.buyer}`),
+      h('textarea', { 'data-buyer-note': o.buyer, rows: 2, maxlength: 300, placeholder: 'Like: big orders, or slow to reply. Every PC sees it.', spellcheck: 'false' }, buyerNote(o.buyer))) : null,
     o.state === 'Paid' ? orderActions() : null,
     h('p', { class: 'note', role: 'status' }, o.note),
     h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'openOnSite' }, 'Open on Eldorado')));
@@ -676,18 +703,29 @@ function kinds(sales) {
       h('small', {}, `${k.count === 1 ? '1 sale' : k.count + ' sales'}, ${Math.round(k.amount / total * 100)}% of sold`))));
 }
 
+// Sales minus Eldorado's fee minus your cost for every unit sold. Blank until the offer has a cost.
+function profitCell(offer, item) {
+  const cost = offer ? costOf(offer) : null;
+  if (cost === null) return h('td', { class: 'n quiet i-profit', title: offer ? 'Add a cost in the offer’s panel' : 'Not in your shop now' }, '–');
+  const profit = Number(item.amount) * (1 - feeOf(offer)) - cost * item.units;
+  return h('td', { class: 'n i-profit ' + (profit < 0 ? 'loss' : 'gain') }, (profit < 0 ? '−' : '') + inCurrency(Math.abs(profit).toFixed(2), item.currency));
+}
+
 function itemCard(title, note, items, blank) {
   return h('section', { class: 'card items' },
     h('header', {}, h('h3', {}, title), note ? h('span', {}, note) : null),
     items.length ? h('table', {},
-      h('colgroup', {}, ['item', 'orders', 'amount', 'last', 'now'].map(c => h('col', { class: 'i-' + c }))),
-      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'), ['Orders', 'Amount', 'Last sold'].map(t => h('th', { scope: 'col', class: 'n' }, t)), h('th', { scope: 'col', class: 'n' }, 'Now'))),
+      h('colgroup', {}, ['item', 'orders', 'amount', 'profit', 'last', 'now'].map(c => h('col', { class: 'i-' + c }))),
+      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Item'), ['Orders', 'Amount'].map(t => h('th', { scope: 'col', class: 'n' }, t)),
+        h('th', { scope: 'col', class: 'n i-profit', title: 'After Eldorado’s fee and your cost. Add a cost in the offer’s panel.' }, 'Profit'),
+        h('th', { scope: 'col', class: 'n' }, 'Last sold'), h('th', { scope: 'col', class: 'n' }, 'Now'))),
       h('tbody', {}, items.map(item => {
         const offer = state.offers.find(o => o.id === item.offer);
         return h('tr', { 'data-key': title + item.title, 'data-do': offer ? 'openOffer' : null, 'data-offer': offer ? offer.id : null, class: offer ? 'link' : null },
           h('td', {}, h('div', { class: 'it' }, offer ? picture(offer, 'thumb') : h('span', { class: 'thumb none' }), h('b', {}, item.title))),
           h('td', { class: 'n' }, item.orders),
           h('td', { class: 'n' }, inCurrency(item.amount, item.currency)),
+          profitCell(offer, item),
           h('td', { class: 'n quiet' }, new Date(item.last).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })),
           h('td', { class: 'n' }, h('span', { class: item.why ? 'pill warn' : 'pill' }, item.why || 'Live')));
       }))) : h('p', { class: 'hint' }, blank));
@@ -887,7 +925,10 @@ function opportunities() {
       h('div', {}, h('b', {}, o.title), h('p', {}, `You ${fit(o.livePrice)} · sales ${fit(p.from)}–${fit(p.to)}`)),
       h('div', { class: 'acts' },
         // One click from Home would reprice a live offer, so Set asks once more before it sends.
-        settingPrice === String(o.id)
+        belowCost(o, p.suggest)
+          ? [h('span', { class: 'quiet', title: `${fit(p.suggest)} is below what one unit costs you` }, 'Below your cost'),
+             h('button', { type: 'button', class: 'tool', 'data-do': 'openOffer', 'data-offer': o.id }, 'Open')]
+          : settingPrice === String(o.id)
           ? [h('button', { type: 'button', class: 'solid', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, 'Send ' + fit(p.suggest)),
              h('button', { type: 'button', class: 'tool', 'data-do': 'setNo' }, 'Cancel')]
           : [h('button', { type: 'button', class: 'tool', 'data-do': 'setAsk', 'data-value': o.id }, 'Set ' + fit(p.suggest)),
@@ -935,7 +976,7 @@ function buyerTable(title, note, list, blank) {
     list.length ? h('table', {},
       h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Buyer'), ['Orders', 'Spent', 'Buys every', 'Last'].map(t => h('th', { scope: 'col', class: 'n' }, t)), h('th', { scope: 'col' }, 'Buys'))),
       h('tbody', {}, list.map(b => h('tr', { 'data-key': title + b.name },
-        h('td', {}, h('b', {}, b.name), b.problems.length ? h('div', { class: 'tags' }, b.problems.map(p => h('span', { class: 'pill warn' }, p))) : null),
+        h('td', {}, h('b', {}, b.name), buyerNote(b.name) ? h('small', { class: 'buyer-tag', title: buyerNote(b.name) }, buyerNote(b.name)) : null, b.problems.length ? h('div', { class: 'tags' }, b.problems.map(p => h('span', { class: 'pill warn' }, p))) : null),
         h('td', { class: 'n' }, b.orders), h('td', { class: 'n' }, dollars(b.spent)),
         h('td', { class: 'n quiet' }, b.every || 'Once'), h('td', { class: 'n quiet' }, shortDay(b.last)),
         h('td', { class: 'buys' }, b.items.join(', ')))))) : h('p', { class: 'hint' }, blank));
@@ -1521,7 +1562,7 @@ document.addEventListener('input', event => {
     } else {
       finDraft[node.dataset.fin] = node.value;
     }
-  } else if (node.dataset.bundle) {
+  } else if (node.dataset.bundle || node.dataset.cost || node.dataset.buyerNote !== undefined) {
     editing = node;
   } else if (node.dataset.bulk === 'percent') {
     bulk.percent = node.value;
@@ -1536,6 +1577,16 @@ document.addEventListener('change', event => {
   else if (node.dataset.bundle) {
     editing = null;
     send('bundle', { id: node.dataset.bundle, text: node.value });
+  }
+  else if (node.dataset.cost) {
+    editing = null;
+    const offer = state.offers.find(o => o.id === node.dataset.cost);
+    const before = offer ? costOf(offer) : null;
+    if (node.value.trim() !== (before === null ? '' : String(before))) send('setCost', { offer: node.dataset.cost, title: node.dataset.title, cost: node.value });
+  }
+  else if (node.dataset.buyerNote !== undefined) {
+    editing = null;
+    if (node.value.trim() !== buyerNote(node.dataset.buyerNote)) send('buyerNote', { buyer: node.dataset.buyerNote, note: node.value });
   }
   else if (node.dataset.extend === 'time') extendTime = node.value;
   else if (node.dataset.extend === 'reason') extendReason = node.value;

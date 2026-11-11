@@ -118,6 +118,7 @@ namespace SellerDesk
                 if (ring) window.Listen(config);
                 else Config.ShareOrder(null, "");   // an order left from before would hang on in the dashboard
                 new MarketWatch().Start();
+                BuyerNotes.Start();
                 if (!welcome) return;
                 if (ring) window.Welcome();
                 if (config.HasSellerKey) Installer.StartDashboard();

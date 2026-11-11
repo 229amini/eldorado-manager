@@ -1,7 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.7.0
 
+- Profit: give an offer your cost per unit in its side panel and SellerDesk shows what a sale leaves you after Eldorado's fee. Dragging your price shows it at the new price, Sales gets a **Profit** column, and Price checks no longer suggest a price below your cost.
+- Buyer notes: write a note on a buyer in an order's side panel. It shows under their name in Orders and Customers, and on the alarm when they order again.
+- Costs and notes live in the ledger on your shared server, so every PC sees the same ones. The server needs 1.7.0 too.
 - Opening SellerDesk again while the dashboard is already running now also looks for a new version, when the last look was more than 10 minutes ago. Before, it only brought the window forward and the next look could be an hour away.
 
 ## 1.6.6

@@ -96,11 +96,18 @@ class Dashboard(unittest.TestCase):
 
         status, ledger = self.call("GET", "/api/ledger")
         self.assertEqual(status, 200)
-        self.assertEqual(set(ledger), {"revision", "people", "orders", "payments", "summary"})
+        self.assertEqual(set(ledger), {"revision", "people", "orders", "payments", "summary", "feeRates", "costs", "buyers"})
         self.assertEqual(ledger["summary"][0]["balance"], 5.5)
 
+        status, cost = self.call("PUT", "/api/ledger/costs/offer-9", {"cost": 0.4, "title": "Seeds"})
+        self.assertEqual((status, cost["cost"]), (200, 0.4))
+        status, note = self.call("PUT", "/api/ledger/buyers/Night%20Owl", {"note": "slow to reply"})
+        self.assertEqual((status, note["name"]), (200, "Night Owl"))
+        self.assertEqual(self.call("PUT", "/api/ledger/costs/offer-9", {"cost": -2})[0], 400)
+        snap = self.call("GET", "/api/ledger")[1]
+        self.assertEqual((snap["costs"]["offer-9"]["cost"], snap["buyers"]["night owl"]["note"]), (0.4, "slow to reply"))
         status, reply = self.call("DELETE", f"/api/ledger/payments/{payment['id']}")
-        self.assertEqual((status, reply["revision"]), (200, 5))
+        self.assertEqual((status, reply["revision"]), (200, 7))
         self.assertEqual(self.call("DELETE", f"/api/ledger/payments/{payment['id']}")[0], 404)
 
     def test_bad_requests(self):

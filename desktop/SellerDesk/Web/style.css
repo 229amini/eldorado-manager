@@ -528,3 +528,23 @@ tbody tr:hover td { background: var(--panel); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; }
 }
+
+/* Profit: your cost per unit, what a sale leaves after the fee, and the Sales column built on it. */
+.profit { display: grid; gap: 6px; }
+.profit label { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; color: var(--muted); }
+.profit .cost { width: 96px; height: 28px; padding: 0 8px; border: 0; background: var(--raised); color: var(--ink); font-weight: 600; text-align: right; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1px var(--line); }
+.profit .cost:hover { box-shadow: inset 0 0 0 1px var(--muted); }
+.profit .cost::placeholder { color: var(--muted); font-weight: 400; }
+.profit .hint { margin: 0; }
+.keep { margin: 0; font-weight: 600; color: var(--up); font-variant-numeric: tabular-nums; }
+.keep small { margin-left: 6px; font-weight: 400; color: var(--muted); }
+.keep.loss, .band-pick .loss, .items .loss { color: var(--down); }
+.band-pick .gain, .items .gain { color: var(--up); }
+.i-profit { width: 84px; }
+
+/* Buyer notes: written in the order panel, shown under the buyer's name elsewhere. */
+.buyer-note { display: grid; gap: 5px; font-size: 13px; color: var(--muted); }
+.buyer-note textarea { font: inherit; resize: vertical; min-height: 52px; padding: 7px 9px; border: 0; background: var(--raised); color: var(--ink); font-size: 13px; line-height: 1.4; box-shadow: inset 0 0 0 1px var(--line); }
+.buyer-note textarea:hover { box-shadow: inset 0 0 0 1px var(--muted); }
+.buyer-note textarea::placeholder { color: var(--muted); }
+.buyer-tag { display: block; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--accent); }

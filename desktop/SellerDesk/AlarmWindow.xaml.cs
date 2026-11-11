@@ -289,7 +289,7 @@ namespace SellerDesk
             var others = alarms.Count(a => !a.IsNotice) - (alarm.IsNotice ? 0 : 1);
             var more = others > 0 ? $"{others} more waiting" : "";
 
-            Header.Text = string.Join(", ", new[] { alarm.Header, alarm.Price, more }.Where(s => !string.IsNullOrEmpty(s)));
+            Header.Text = string.Join(", ", new[] { alarm.Header, alarm.Price, BuyerNotes.For(alarm.Buyer), more }.Where(s => !string.IsNullOrEmpty(s)));
             Summary.Text = alarm.Title;
             Countdown.Text = MiniClock.Text = alarm.Clock;
             Countdown.Visibility = alarm.Clock.Length > 0 ? Visibility.Visible : Visibility.Collapsed;

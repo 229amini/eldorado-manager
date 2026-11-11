@@ -69,6 +69,13 @@ namespace SellerDesk
         public Dictionary<string, object> DeletePayment(string id) =>
             Call("DELETE", "/api/ledger/payments/" + Uri.EscapeDataString(id), null);
 
+        /// <summary>What one sold unit of the offer costs you; null forgets it.</summary>
+        public Dictionary<string, object> SetCost(string offerId, double? cost, string title) =>
+            Call("PUT", "/api/ledger/costs/" + Uri.EscapeDataString(offerId), new Dictionary<string, object> { ["cost"] = cost, ["title"] = title });
+
+        public Dictionary<string, object> SetBuyerNote(string buyer, string note) =>
+            Call("PUT", "/api/ledger/buyers/" + Uri.EscapeDataString(buyer), new Dictionary<string, object> { ["note"] = note });
+
         private Dictionary<string, object> Call(string method, string path, object body, long? seen = null)
         {
             var request = (HttpWebRequest)WebRequest.Create(url + path);

@@ -13,6 +13,7 @@ import re
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import unquote
 
 from .ledger import Conflict, NotFound
 from .market import empty_snapshot
@@ -181,10 +182,16 @@ def make_handler(engine, token: str, market=None, ledger=None):
                 return
             person = re.fullmatch(r"/api/ledger/people/([\w-]+)", self._path)
             order = re.fullmatch(r"/api/ledger/orders/([\w-]+)", self._path)
+            cost = re.fullmatch(r"/api/ledger/costs/([\w-]+)", self._path)
+            buyer = re.fullmatch(r"/api/ledger/buyers/([^/]+)", self._path)
             if person:
                 self._ledger(lambda body: ledger.update_person(person.group(1), body, self._expect()))
             elif order:
                 self._ledger(lambda body: ledger.put_order(order.group(1), body, self._expect()))
+            elif cost:
+                self._ledger(lambda body: ledger.set_cost(cost.group(1), body))
+            elif buyer:
+                self._ledger(lambda body: ledger.set_buyer_note(unquote(buyer.group(1)), body))
             else:
                 self._send(404, b'{"error":"not found"}')
 

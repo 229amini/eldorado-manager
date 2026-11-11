@@ -86,6 +86,8 @@ Sellers sell the same item in different bundle sizes: one offer is "100x Seeds",
 
 Click a row to open the side panel. It compares your price, delivery time and ratings with the top 5 sellers and names your biggest gap.
 
+Type what one unit of the offer costs you in **What one unit costs you** and press Enter. The panel then shows what you keep from a sale after Eldorado's fee, in red if you sell at a loss. While you drag your price mark it shows what you'd keep at the new price. Price checks on Home and **Set price to** stop suggesting a price below your cost. Costs live in the ledger on your shared server, so every PC sees them. Clear the box to remove one.
+
 **Change many** changes one game's prices by a percentage, or its delivery time. You review the list before it sends.
 
 Eldorado closes an offer when its stock runs out. Under **Closed**, type a price and a stock above 0 on the row, then click **Reopen offer** in the side panel. The app sends the stock first, because Eldorado refuses a price on an offer with none, then the price. Some offers need a minimum stock to meet Eldorado's minimum order value; the red line names it.
@@ -93,6 +95,8 @@ Eldorado closes an offer when its stock runs out. Under **Closed**, type a price
 ### Orders
 
 Open orders and the last 30 days, with buyer, amount, deadline, review and dispute. **Mark delivered** and **Extend** act on a real order, so both ask a second time.
+
+Write a note on a buyer in the order's side panel, like "big orders" or "slow to reply". You'll see it under their name in Orders and Customers, and on the alarm when they order again. Notes need your shared server and every PC shares them.
 
 ### Sales
 
@@ -102,7 +106,7 @@ Pick 7, 30 or 90 days:
 
 - **Sold** counts orders by the day the buyer paid.
 - **Net income cleared** is money Eldorado has settled. Orders take about 5 days to clear, so the card also shows what's still on its way.
-- **Best sellers** ranks your items and shows each one's state today.
+- **Best sellers** ranks your items and shows each one's state today. **Profit** takes Eldorado's fee and your cost off what they sold for. It stays blank until you give the offer a cost.
 - **Worth bringing back** lists items that sold in the last 90 days but are gone, paused or nearly out.
 
 ### Customers

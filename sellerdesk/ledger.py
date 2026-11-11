@@ -33,6 +33,7 @@ FIRST_SYNC_SECONDS = 60
 
 MAX_AMOUNT = 1e9
 MAX_UNITS = 10_000_000_000
+MAX_NOTE = 300
 
 
 class NotFound(LookupError):
@@ -91,6 +92,15 @@ def _valid_order(order) -> bool:
 
 def _valid_person(person) -> bool:
     return isinstance(person, dict) and isinstance(person.get("id"), str) and isinstance(person.get("name"), str)
+
+
+def _valid_cost(cost) -> bool:
+    return (isinstance(cost, dict) and isinstance(cost.get("cost"), (int, float))
+            and not isinstance(cost.get("cost"), bool))
+
+
+def _valid_buyer(buyer) -> bool:
+    return isinstance(buyer, dict) and isinstance(buyer.get("name"), str) and isinstance(buyer.get("note"), str)
 
 
 def _valid_payment(payment) -> bool:
@@ -174,7 +184,9 @@ class Ledger:
 
     @staticmethod
     def _empty() -> dict:
-        return {"revision": 0, "people": [], "orders": {}, "payments": [], "feeRates": dict(FALLBACK_FEES)}
+        # costs: what one sold unit of an offer costs you, by offer id. buyers: your notes, by lower-cased name.
+        return {"revision": 0, "people": [], "orders": {}, "payments": [], "feeRates": dict(FALLBACK_FEES),
+                "costs": {}, "buyers": {}}
 
     def _load(self) -> dict:
         data = self._empty()
@@ -203,9 +215,10 @@ class Ledger:
             kept = [item for item in data[key] if valid(item)]
             dropped += len(data[key]) - len(kept)
             data[key] = kept
-        for key in [key for key, order in data["orders"].items() if not _valid_order(order)]:
-            data["orders"].pop(key)
-            dropped += 1
+        for part, valid in (("orders", _valid_order), ("costs", _valid_cost), ("buyers", _valid_buyer)):
+            for key in [key for key, item in data[part].items() if not valid(item)]:
+                data[part].pop(key)
+                dropped += 1
         if dropped:
             aside = f"{self.path}.bad-{int(time.time())}"
             log.error("ledger: left out %d damaged record(s); the original file is kept as %s", dropped, aside)
@@ -253,7 +266,8 @@ class Ledger:
         with self._lock:
             data = copy.deepcopy(self._data)
         return {"revision": data["revision"], "people": data["people"], "orders": data["orders"],
-                "payments": data["payments"], "summary": self._summary(data)}
+                "payments": data["payments"], "summary": self._summary(data), "feeRates": data["feeRates"],
+                "costs": data["costs"], "buyers": data["buyers"]}
 
     def summary(self) -> list[dict]:
         with self._lock:
@@ -327,6 +341,43 @@ class Ledger:
                     person["changed"] = int(data.get("revision", 0)) + 1
                     return dict(person)
             raise NotFound(f"no person {person_id}")
+
+        return self._change(edit)
+
+    # ---------- costs and buyer notes ----------
+
+    def set_cost(self, offer_id: str, body: dict) -> tuple[dict, int]:
+        """What one sold unit of the offer costs you. A null or missing cost forgets it."""
+        offer_id = _string(offer_id, "offer", required=True)
+        raw = body.get("cost")
+        cost = None if raw is None else _number(raw, "cost")
+        if cost is not None and cost < 0:
+            raise ValueError("cost can't be below zero")
+        title = _string(body.get("title"), "title")[:200]
+
+        def edit(data):
+            if cost is None:
+                data["costs"].pop(offer_id, None)
+                return {"offer": offer_id, "cost": None}
+            data["costs"][offer_id] = {"cost": cost, "title": title, "changed": int(data.get("revision", 0)) + 1}
+            return {"offer": offer_id, **data["costs"][offer_id]}
+
+        return self._change(edit)
+
+    def set_buyer_note(self, name: str, body: dict) -> tuple[dict, int]:
+        """Your note on a buyer, shared by every PC. An empty note removes it."""
+        name = _string(name, "buyer", required=True)[:100]
+        note = _string(body.get("note"), "note")
+        if len(note) > MAX_NOTE:
+            raise ValueError(f"keep the note under {MAX_NOTE} characters")
+        key = name.casefold()
+
+        def edit(data):
+            if not note:
+                data["buyers"].pop(key, None)
+                return {"name": name, "note": ""}
+            data["buyers"][key] = {"name": name, "note": note, "changed": int(data.get("revision", 0)) + 1}
+            return dict(data["buyers"][key])
 
         return self._change(edit)
 

@@ -128,7 +128,7 @@ class LedgerTests(unittest.TestCase):
             self.assertEqual(json.load(file)["revision"], 2)
         again = Ledger(self.path)
         self.assertEqual([p["name"] for p in again.snapshot()["people"]], ["Ann", "Bob"])
-        self.assertEqual(set(again.snapshot()), {"revision", "people", "orders", "payments", "summary"})
+        self.assertEqual(set(again.snapshot()), {"revision", "people", "orders", "payments", "summary", "feeRates", "costs", "buyers"})
 
     def test_missing_shares_is_refused(self):
         self.ledger.put_order("o1", order(shares=[{"person": self.ann["id"], "units": 1}]))
@@ -184,6 +184,36 @@ class LedgerTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.ledger.update_person(self.bob["id"], {"name": "ANN"})
         self.ledger.update_person(self.ann["id"], {"name": "Ann"})  # renaming to itself is fine
+
+    def test_costs_and_buyer_notes(self):
+        stored, _ = self.ledger.set_cost("offer-1", {"cost": 0.25, "title": "Seeds"})
+        self.assertEqual(stored["cost"], 0.25)
+        self.ledger.set_buyer_note("NightOwl_77", {"note": "  Big orders, pays fast  "})
+        snap = Ledger(self.path).snapshot()   # survives a reload
+        self.assertEqual(snap["costs"]["offer-1"]["cost"], 0.25)
+        self.assertEqual(snap["buyers"]["nightowl_77"], {"name": "NightOwl_77", "note": "Big orders, pays fast",
+                                                         "changed": snap["buyers"]["nightowl_77"]["changed"]})
+        self.assertIn("Items", snap["feeRates"])
+        for bad in ({"cost": -1}, {"cost": "cheap"}, {"cost": True}, {"cost": 1e12}):
+            with self.assertRaises(ValueError):
+                self.ledger.set_cost("offer-1", bad)
+        with self.assertRaises(ValueError):
+            self.ledger.set_buyer_note("x", {"note": "n" * 301})
+        self.ledger.set_cost("offer-1", {"cost": None})
+        self.ledger.set_buyer_note("nightowl_77", {"note": ""})   # any case finds the same buyer
+        snap = self.ledger.snapshot()
+        self.assertEqual((snap["costs"], snap["buyers"]), ({}, {}))
+
+    def test_damaged_cost_or_note_is_left_out(self):
+        self.ledger.set_cost("good", {"cost": 1})
+        with open(self.path, encoding="utf-8") as file:
+            data = json.load(file)
+        data["costs"]["bad"] = {"cost": "x"}
+        data["buyers"] = {"a": {"name": "A"}}
+        with open(self.path, "w", encoding="utf-8") as file:
+            json.dump(data, file)
+        snap = Ledger(self.path).snapshot()
+        self.assertEqual((list(snap["costs"]), snap["buyers"]), (["good"], {}))
 
     def test_damaged_record_is_left_out(self):
         with open(self.path, encoding="utf-8") as file:

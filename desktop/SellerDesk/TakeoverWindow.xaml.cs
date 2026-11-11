@@ -176,7 +176,8 @@ namespace SellerDesk
         {
             Clock.Text = ClockGlow.Text = ClockHot.Text = alarm.Clock;
             OrderTitle.Text = alarm.Title;
-            Detail.Text = string.Join(", ", new[] { alarm.Price, alarm.Buyer, more }.Where(s => !string.IsNullOrEmpty(s)));
+            var note = BuyerNotes.For(alarm.Buyer);
+            Detail.Text = string.Join(", ", new[] { alarm.Price, alarm.Buyer, note.Length > 0 ? "your note: " + note : "", more }.Where(s => !string.IsNullOrEmpty(s)));
             OpenButton.Visibility = string.IsNullOrEmpty(alarm.Link) ? Visibility.Collapsed : Visibility.Visible;
 
             var late = alarm.Stage == Stage.Late;

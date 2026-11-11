@@ -124,6 +124,9 @@
         people: [{ id: 'p1', name: 'Reza', note: 'Pays by card', archived: false }, { id: 'p2', name: 'Sara', note: '', archived: false }],
         orders: { o5: { title: 'Arc Cell', placed: new Date(now - 3600000).toISOString(), quantity: 5, total: 1.1, currency: 'USD', category: 'CustomItem', net: 0.93, netExact: true, shares: [{ person: 'p1', units: 3 }, { person: 'p2', units: 2 }] } },
         payments: [{ id: 'y1', person: 'p1', amount: 0.2, date: '2026-11-08', note: 'Card' }],
+        feeRates: { Items: 0.15, Currency: 0.05 },
+        costs: { 1: { cost: 0.04, title: 'Copper Coil' }, 2: { cost: 0.06, title: 'Rusted Gear' }, 4: { cost: 1.5, title: 'Arc Cell' }, 9: { cost: 0.004, title: 'Coins' } },
+        buyers: { marko_77: { name: 'marko_77', note: 'Big orders, pays fast' } },
         summary: [{ person: 'p1', units: 3, earned: 0.56, paid: 0.2, balance: 0.36, orders: 1 }, { person: 'p2', units: 2, earned: 0.37, paid: 0, balance: 0.37, orders: 1 }],
       },
     },
@@ -159,6 +162,8 @@
       else delete book.orders[o.id];
     }
     if (type === 'addPayment') book.payments.push({ id: 'y' + Date.now(), person: data.person, amount: +data.amount, date: data.date, note: data.note });
+    if (type === 'setCost') { if (data.cost.trim()) book.costs[data.offer] = { cost: +data.cost, title: data.title }; else delete book.costs[data.offer]; }
+    if (type === 'buyerNote') { if (data.note.trim()) book.buyers[data.buyer.toLowerCase()] = { name: data.buyer, note: data.note.trim() }; else delete book.buyers[data.buyer.toLowerCase()]; }
     if (type === 'theme') state.theme = data.value;
     if (type === 'updateLater') state.update = null;
     if (type === 'update' && state.update) { state.update.percent = 0; const step = () => { state.update.percent = Math.min(100, state.update.percent + 25); if (state.update.percent < 100) setTimeout(step, 150); else state.update.percent = null, state.update.starting = true; window.managerState(state); }; setTimeout(step, 150); }

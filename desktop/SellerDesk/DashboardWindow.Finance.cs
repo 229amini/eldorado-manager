@@ -86,6 +86,22 @@ namespace SellerDesk
                 case "deletePayment":
                     Change(() => hub.DeletePayment(text("payment")), "Payment removed");
                     return true;
+                case "setCost":
+                    var costText = text("cost").Trim().TrimStart('$');
+                    double? cost = null;
+                    if (costText.Length > 0)
+                    {
+                        if (!double.TryParse(costText, NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) || parsed < 0)
+                            return Told("Enter what one unit costs you, like 0.05 or 2.");
+                        cost = parsed;
+                    }
+                    Change(() => hub.SetCost(text("offer"), cost, text("title")), cost == null ? "Cost removed" : "Cost saved");
+                    return true;
+                case "buyerNote":
+                    var buyer = text("buyer").Trim();
+                    if (buyer.Length == 0) return true;
+                    Change(() => hub.SetBuyerNote(buyer, text("note").Trim()), "Note saved");
+                    return true;
                 case "exportFinance":
                     Export(text("person"), text("from"), text("until"));
                     return true;
