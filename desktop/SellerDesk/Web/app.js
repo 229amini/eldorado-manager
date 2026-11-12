@@ -22,6 +22,7 @@ let filter = '';
 let selected = null;
 let pickedOrder = null;
 let ordersShown = 'open';
+let orderFilter = '';
 let marketShown = 'missing';
 let bulk = null;      // { game, percent, promise, ask } while the bulk panel is open
 let asking = null;    // the order action waiting for its second click: 'deliver' or 'extend'
@@ -142,7 +143,11 @@ function current(list) {
 }
 
 const openOrders = () => state.orders.filter(o => o.open);
-const shownOrders = () => ordersShown === 'open' ? openOrders() : state.orders.filter(o => o.placed >= Date.now() - 30 * 864e5);
+const shownOrders = () => {
+  const word = orderFilter.trim().toLowerCase();
+  const list = ordersShown === 'open' ? openOrders() : state.orders.filter(o => o.placed >= Date.now() - 30 * 864e5);
+  return word ? list.filter(o => (o.title || '').toLowerCase().includes(word)) : list;
+};
 
 function ago(stamp) {
   if (!stamp) return '';
@@ -609,7 +614,8 @@ function ordersPage() {
   const pick = list.find(o => o.id === pickedOrder) || list[0] || null;
   pickedOrder = pick ? pick.id : null;
   return [
-    h('div', { class: 'bar' }, segment('Show orders', [['open', `To do ${openOrders().length}`], ['all', 'Last 30 days']], ordersShown, 'ordersShown')),
+    h('div', { class: 'bar' }, segment('Show orders', [['open', `To do ${openOrders().length}`], ['all', 'Last 30 days']], ordersShown, 'ordersShown'),
+      h('input', { class: 'filter', id: 'orderFilter', 'data-order-filter': '1', value: orderFilter, placeholder: 'Find an item', title: 'Ctrl+F', 'aria-label': 'Find orders by item', autocomplete: 'off', spellcheck: 'false' })),
     h('div', { class: 'work' },
       h('div', { class: 'list' }, list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders' },
         h('colgroup', {}, ['due', 'item', 'buyer', 'qty', 'total', 'state', 'review'].map(c => h('col', { class: 'c-' + c }))),
@@ -618,16 +624,16 @@ function ordersPage() {
           'data-key': o.id, 'data-do': 'pickOrder', 'data-order': o.id, tabindex: 0,
           class: pick && o.id === pick.id ? 'on' : null, 'aria-selected': String(!!pick && o.id === pick.id),
         },
-          h('td', {}, dueCell(o)), h('td', {}, h('b', {}, o.title)), h('td', {}, o.buyer, buyerNote(o.buyer) ? h('small', { class: 'buyer-tag', title: buyerNote(o.buyer) }, buyerNote(o.buyer)) : null), h('td', {}, o.quantity), h('td', {}, o.total),
+          h('td', {}, dueCell(o)), h('td', {}, h('div', { class: 'it' }, orderPicture(o), h('b', {}, o.title))), h('td', {}, o.buyer, buyerNote(o.buyer) ? h('small', { class: 'buyer-tag', title: buyerNote(o.buyer) }, buyerNote(o.buyer)) : null), h('td', {}, o.quantity), h('td', {}, o.total),
           h('td', {}, o.state), h('td', { class: o.review === 'Negative' ? 'bad' : null }, o.review))))))
-        : h('p', { class: 'empty' }, ordersShown === 'open' ? 'Nothing to deliver right now.' : 'Reading your orders.')),
+        : h('p', { class: 'empty' }, orderFilter.trim() ? `No orders for “${orderFilter.trim()}” here.` : ordersShown === 'open' ? 'Nothing to deliver right now.' : 'Reading your orders.')),
       pick ? orderPanel(pick) : null)];
 }
 
 function orderPanel(o) {
   const facts = [['Buyer', o.buyer], ['Quantity', o.quantity], ['Total', o.total], ['Placed', o.placed ? dayOf(o.placed) : ''], ['State', o.state], ['Review', o.review], ['Dispute', o.dispute]];
   return h('aside', { 'aria-label': 'Selected order' },
-    h('div', { class: 'head' }, h('div', {}, h('h2', {}, o.title))),
+    h('div', { class: 'head' }, orderPicture(o), h('div', {}, h('h2', {}, o.title))),
     h('dl', { class: 'facts' }, facts.filter(([, value]) => value).map(([label, value]) => [h('dt', {}, label), h('dd', {}, value)])),
     ledger() && o.buyer ? h('label', { class: 'buyer-note' }, h('span', {}, `Your note on ${o.buyer}`),
       h('textarea', { 'data-buyer-note': o.buyer, rows: 2, maxlength: 300, placeholder: 'Like: big orders, or slow to reply. Every PC sees it.', spellcheck: 'false' }, buyerNote(o.buyer))) : null,
@@ -1550,6 +1556,9 @@ document.addEventListener('input', event => {
   if (node.dataset.filter) {
     filter = node.value;
     draw();
+  } else if (node.dataset.orderFilter) {
+    orderFilter = node.value;
+    draw();
   } else if (node.dataset.edit) {
     editing = node;
     const [type, data] = editMessage(node, 'typed');
@@ -1700,11 +1709,11 @@ document.addEventListener('keydown', event => {
     send('zoom', { step: event.key === '0' ? 0 : event.key === '-' ? -1 : 1 });
   } else if (event.ctrlKey && event.key.toLowerCase() === 'f') {
     event.preventDefault();
-    if (tab !== 'offers') {
+    if (tab !== 'offers' && tab !== 'orders') {
       tab = 'offers';
       draw();
     }
-    const box = document.getElementById('filter');
+    const box = document.getElementById(tab === 'orders' ? 'orderFilter' : 'filter');
     box.focus();
     box.select();
   } else if (field && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {

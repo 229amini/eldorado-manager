@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.1
+
+- Orders: a **Find an item** box filters the list by item name. Ctrl+F jumps to it while Orders is open. To find older orders for an item, pick **Last 30 days** first.
+- Orders shows each item's picture in its row and side panel, as Finance does.
+- In a narrow window, Orders hides the Review column (the side panel still shows it) so the item name has room.
+
 ## 1.7.0
 
 - Profit: give an offer your cost per unit in its side panel and SellerDesk shows what a sale leaves you after Eldorado's fee. Dragging your price shows it at the new price, Sales gets a **Profit** column, and Price checks no longer suggest a price below your cost.

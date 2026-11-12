@@ -94,7 +94,7 @@ Eldorado closes an offer when its stock runs out. Under **Closed**, type a price
 
 ### Orders
 
-Open orders and the last 30 days, with buyer, amount, deadline, review and dispute. **Mark delivered** and **Extend** act on a real order, so both ask a second time.
+Open orders and the last 30 days, with each item's picture, buyer, amount, deadline, review and dispute. Type in **Find an item** (or press Ctrl+F) to show only the orders for one item. **Mark delivered** and **Extend** act on a real order, so both ask a second time.
 
 Write a note on a buyer in the order's side panel, like "big orders" or "slow to reply". You'll see it under their name in Orders and Customers, and on the alarm when they order again. Notes need your shared server and every PC shares them.
 

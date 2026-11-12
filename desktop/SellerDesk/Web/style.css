@@ -505,6 +505,7 @@ tbody tr:hover td { background: var(--panel); }
   .c-price { width: 132px; } .c-stock { width: 128px; }
   .work { grid-template-columns: minmax(0, 1fr) 300px; }
   .people .person { min-width: 0; }
+  .c-due { width: 100px; } .c-buyer { width: 116px; } .c-total { width: 92px; } .c-state { width: 92px; }
 }
 
 @media (max-width: 1240px) {
@@ -513,6 +514,7 @@ tbody tr:hover td { background: var(--panel); }
   .duo.wide { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .c-rank , .offers th:nth-child(3), .offers td:nth-child(3) { display: none; }
   .status { display: none; }
+  .orders:not(.finance) .c-review, .orders:not(.finance) th:nth-child(7), .orders:not(.finance) td:nth-child(7) { display: none; }   /* the panel shows the review */
 }
 @media (max-width: 1000px) {
   .top { gap: 8px; }
