@@ -392,6 +392,65 @@ namespace SellerDesk
             }
         }
 
+        private sealed class Rung
+        {
+            public double Price;
+            public int Orders, Units, Days;
+            public DateTime Last;
+        }
+
+        /// <summary>
+        /// Your own sales of each offer by the price one unit sold at, beside the days the logbook ended at that
+        /// price. The highest price that still sold is your line: above it, raising hasn't sold anything yet.
+        /// The market estimate guesses from rivals' stock; this is what your buyers actually paid.
+        /// </summary>
+        public static Dictionary<string, object> YourSales(IEnumerable<SoldOrder> all, Logbook book, DateTime now)
+        {
+            var since = now.AddDays(-Days);
+            var firstDay = since.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var sold = all.Where(o => o.IsSale && o.Placed >= since && o.Quantity > 0 && o.Total > 0 && o.OfferId.Length > 0).ToList();
+            var marks = book?.Offers ?? new Dictionary<string, List<Mark>>();
+            var result = new Dictionary<string, object>();
+            foreach (var id in sold.Select(o => o.OfferId).Concat(marks.Keys).Distinct())
+            {
+                var rungs = new Dictionary<double, Rung>();
+                Rung At(double price)
+                {
+                    var key = OfferRow.Fit(price);
+                    if (!rungs.TryGetValue(key, out var rung)) rungs[key] = rung = new Rung { Price = key };
+                    return rung;
+                }
+                foreach (var o in sold.Where(o => o.OfferId == id))
+                {
+                    var rung = At(o.Total / o.Quantity);
+                    rung.Orders++;
+                    rung.Units += o.Quantity;
+                    if (o.Placed > rung.Last) rung.Last = o.Placed;
+                }
+                if (marks.TryGetValue(id, out var days))
+                    foreach (var mark in days.Where(m => m.Price > 0 && string.CompareOrdinal(m.Day, firstDay) >= 0)) At(mark.Price).Days++;
+                if (rungs.Count == 0) continue;
+                var sales = rungs.Values.Where(r => r.Orders > 0).ToList();
+                var last = sales.OrderByDescending(r => r.Last).FirstOrDefault();
+                result[id] = new Dictionary<string, object>
+                {
+                    ["top"] = sales.Count == 0 ? (double?)null : sales.Max(r => r.Price),
+                    ["last"] = last?.Price,
+                    ["lastDay"] = last == null ? "" : last.Last.ToLocalTime().ToString("d MMM", CultureInfo.InvariantCulture),
+                    ["orders"] = sales.Sum(r => r.Orders),
+                    ["units"] = sales.Sum(r => r.Units),
+                    ["rungs"] = rungs.Values.OrderByDescending(r => r.Price).Select(r => new Dictionary<string, object>
+                    {
+                        ["price"] = r.Price,
+                        ["orders"] = r.Orders,
+                        ["units"] = r.Units,
+                        ["days"] = r.Days,
+                    }).ToList(),
+                };
+            }
+            return result;
+        }
+
         private static string Match(string kind, string name) => (kind + "|" + name).ToLowerInvariant();
 
         private static string Count(int count, string word) => count == 1 ? "1 " + word : $"{count} {word}s";

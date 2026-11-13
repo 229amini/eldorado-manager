@@ -344,8 +344,9 @@ function offerTable(list, pick) {
     return h('p', { class: 'empty' }, text);
   }
   return h('div', { class: 'scroll' }, h('table', { class: 'offers' },
-    h('colgroup', {}, ['offer', 'place', 'rank', 'low', 'soldat', 'price', 'stock', 'sold'].map(c => h('col', { class: 'c-' + c }))),
-    h('thead', {}, h('tr', {}, [['Offer'], ['Place'], ['Price rank'], ['Lowest'], ['Others sold at', 'The typical price other sellers sold this item for this week. Green: your price is in the usual range. Red: it is outside it.'], ['Your price'], ['Stock'], ['Sold 30 d']]
+    h('colgroup', {}, ['offer', 'place', 'rank', 'low', 'soldat', 'mine', 'price', 'stock', 'sold'].map(c => h('col', { class: 'c-' + c }))),
+    h('thead', {}, h('tr', {}, [['Offer'], ['Place'], ['Price rank'], ['Lowest'], ['Others sold at', 'The typical price other sellers sold this item for this week. Green: your price is in the usual range. Red: it is outside it.'],
+      ['You sold at', 'Your own last sale in 30 days, and the highest price that still sold. Red: your price is above every price you have sold at.'], ['Your price'], ['Stock'], ['Sold 30 d']]
       .map(([t, tip]) => h('th', { scope: 'col', title: tip || null }, t)))),
     h('tbody', {}, list.flatMap(o => [h('tr', {
       'data-key': o.id, 'data-do': 'pick', 'data-id': o.id, tabindex: 0,
@@ -357,7 +358,10 @@ function offerTable(list, pick) {
       h('td', {}, o.listed ? o.rank : ''),
       h('td', {}, o.lowest === null ? '' : o.lowest === o.livePrice ? h('span', { class: 'you' }, 'You') : o.lowestText),
       h('td', {}, soldAtCell(o)),
-      h('td', {}, quick(o, 'price', 'Price', o.priceDraft, o.pendingPrice), o.checking ? h('small', { class: 'checking' }, 'Checking it stuck') : null),
+      h('td', {}, mineCell(o)),
+      h('td', {}, quick(o, 'price', 'Price', o.priceDraft, o.pendingPrice),
+        o.checking ? h('small', { class: 'checking' }, 'Checking it stuck')
+          : overBest(o, Number(o.priceDraft)) ? h('small', { class: 'over', title: `You have no sale above ${fit(mineOf(o).top)} in 30 days` }, `Above your ${fit(mineOf(o).top)}`) : null),
       h('td', {}, quick(o, 'stock', 'Stock', o.stockDraft, o.pendingStock)),
       h('td', { class: o.sold ? null : 'quiet' }, o.sold)),
       o.unsaved ? unsavedLine(o) : null].filter(Boolean)))));
@@ -380,9 +384,42 @@ function soldAtCell(o) {
   return h('span', { class: 'sold-at ' + (p.verdict || ''), title: p.advice || '' }, fit(p.soldAt), h('small', {}, `${plural(p.sales, 'sale')} this week`));
 }
 
+// Your own sales by price, from your orders. The highest price that sold is the line to price under.
+const mineOf = o => (state.yourSales || {})[o.id] || null;
+const bestOf = o => { const m = mineOf(o); return m && m.top != null ? m.top : null; };
+const overBest = (o, price) => { const b = bestOf(o); return b !== null && Number.isFinite(price) && price > b + 1e-9; };
+
+function mineCell(o) {
+  const m = mineOf(o);
+  if (!m || !m.orders) return h('span', { class: 'quiet', title: 'No sales of this offer in 30 days' }, state.yourSales ? 'No sales' : '');
+  const more = m.top !== m.last ? `up to ${fit(m.top)}, ` : '';
+  return h('span', { class: 'mine' + (overBest(o, o.livePrice) ? ' over' : ''), title: `Last sale ${fit(m.last)} on ${m.lastDay}. Highest price that sold: ${fit(m.top)}.` },
+    fit(m.last), h('small', {}, `${more}${plural(m.orders, 'sale')}`));
+}
+
+// Each price this offer sold at or sat at, so a raise that sold nothing shows as plainly as one that did.
+function ladder(o) {
+  const m = mineOf(o);
+  if (!m || !m.rungs.length) return null;
+  const now = fit(o.livePrice);
+  const quiet = m.top === null ? 0 : m.rungs.filter(r => r.price > m.top).reduce((sum, r) => sum + r.days, 0);
+  return h('section', { class: 'ladder' },
+    h('h3', {}, 'Your sales by price, 30 days'),
+    h('table', {},
+      h('thead', {}, h('tr', {}, h('th', { scope: 'col' }, 'Price'), h('th', { scope: 'col' }, 'Sales'), h('th', { scope: 'col', title: 'Days that ended with your offer at this price. Counted only while SellerDesk is open.' }, 'Days listed'))),
+      h('tbody', {}, m.rungs.map(r => h('tr', { 'data-key': 'r' + r.price, class: [r.price === m.top ? 'best' : '', !r.orders ? 'unsold' : ''].join(' ').trim() || null },
+        h('td', {}, fit(r.price), r.price === now ? h('small', {}, 'now') : null, r.price === m.top ? h('small', { class: 'tag' }, 'highest sold') : null),
+        h('td', {}, r.orders ? (r.units !== r.orders ? `${r.orders} (${r.units} units)` : String(r.orders)) : 'none'),
+        h('td', {}, r.days ? plural(r.days, 'day') : ''))))),
+    h('p', { class: 'hint' }, m.top === null
+      ? 'No sales in 30 days at any of these prices.'
+      : `Nothing sold above ${fit(m.top)}${quiet ? `, in ${plural(quiet, 'day')} listed higher` : ''}. Pricing above it hasn't worked yet.`));
+}
+
 // The sales line's ends, padded so a price can be dragged a little past the cheapest and dearest sale.
 function bandScale(o, p) {
-  const lo = Math.min(p.low ?? p.from, p.from, o.livePrice), hi = Math.max(p.to, p.topPrice, o.livePrice) || 1;
+  const best = bestOf(o) ?? o.livePrice;
+  const lo = Math.min(p.low ?? p.from, p.from, o.livePrice, best), hi = Math.max(p.to, p.topPrice, o.livePrice, best) || 1;
   const pad = (hi - lo || hi) * 0.1;
   return { lo: Math.max(0, lo - pad), hi: hi + pad };
 }
@@ -409,6 +446,7 @@ function priceBand(o) {
   const low = p.low ?? null;
   const rank = picked ? rankAt(o, p, you) : null;
   const versus = picked ? Math.round((you / p.soldAt - 1) * 100) : 0;
+  const best = bestOf(o);
   return h('section', { class: 'band-card' },
     h('h3', {}, `What other sellers sold it for this week, ${plural(p.sales, 'sale')}`),
     h('p', { class: 'band-size' }, 'Prices for ',
@@ -425,16 +463,19 @@ function priceBand(o) {
       h('i', { class: 'range', 'data-left': at(p.from), 'data-width': Math.max(2, at(p.to) - at(p.from)) }),
       low === null ? null : h('i', { class: 'mark low', 'data-left': mark(low), title: 'Cheapest listed ' + fit(low) }),
       h('i', { class: 'mark mid', 'data-left': mark(p.soldAt), title: 'Typical sale ' + fit(p.soldAt) }),
+      best === null ? null : h('i', { class: 'mark best', 'data-left': mark(best), title: 'Your highest sale ' + fit(best) }),
       picked ? h('i', { class: 'mark was', 'data-left': mark(o.livePrice), title: 'Your live price ' + fit(o.livePrice) }) : null,
       h('i', { class: 'mark you', 'data-left': mark(you), title: 'You ' + fit(you) })),
     h('div', { class: 'band-key' },
       low === null ? null : h('span', {}, h('i', { class: 'low' }), 'Cheapest'), h('span', {}, h('i', { class: 'range' }), 'Most sales'),
-      h('span', {}, h('i', { class: 'mid' }), 'Typical'), h('span', {}, h('i', { class: 'you' }), canDrag(o) && !picked ? 'You, drag to change' : 'You')),
+      h('span', {}, h('i', { class: 'mid' }), 'Typical'), best === null ? null : h('span', {}, h('i', { class: 'best' }), 'Your highest sale'),
+      h('span', {}, h('i', { class: 'you' }), canDrag(o) && !picked ? 'You, drag to change' : 'You')),
     picked ? h('div', { class: 'band-pick', role: 'status' },
       h('span', { class: 'quiet' }, 'New price'), h('b', {}, fit(you)),
       h('span', {}, `#${rank.place} of ${rank.of} listed`),
       h('span', { class: 'quiet' }, versus === 0 ? 'at the typical sale' : `${Math.abs(versus)}% ${versus > 0 ? 'above' : 'below'} the typical sale`),
       keepAt(o, you) === null ? null : h('span', { class: belowCost(o, you) ? 'loss' : 'gain' }, belowCost(o, you) ? `lose ${fit(-keepAt(o, you))}` : `keep ${fit(keepAt(o, you))}`),
+      overBest(o, you) ? h('span', { class: 'loss' }, `above your highest sale, ${fit(best)}`) : null,
       h('div', { class: 'acts' },
         h('button', { type: 'button', class: 'solid', 'data-do': 'dragSave', disabled: Math.abs(you - o.livePrice) < 0.00001 }, 'Save price'),
         h('button', { type: 'button', class: 'line', 'data-do': 'dragCancel' }, 'Cancel'))) : null,
@@ -443,19 +484,21 @@ function priceBand(o) {
       h('dt', {}, 'Most sales between'), h('dd', {}, `${fit(p.from)} to ${fit(p.to)}`),
       h('dt', {}, 'Typical sale price'), h('dd', {}, fit(p.soldAt)),
       h('dt', {}, 'Average sale price'), h('dd', {}, fit(p.average)),
+      best === null ? null : [h('dt', {}, 'Your highest sale, 30 days'), h('dd', {}, fit(best))],
       h('dt', {}, 'Sold the most'), h('dd', {}, p.topLink ? h('button', { type: 'button', class: 'seller', 'data-do': 'openTop', 'data-url': p.topLink }, `${p.topSeller} at ${fit(p.topPrice)}, ${plural(p.topSales, 'sale')}`) : p.topSeller)),
     h('p', { class: 'insight ' + (p.verdict || '') }, p.advice),
     p.suggest && Math.abs(p.suggest - o.livePrice) > 0.00001 && o.listed
       ? belowCost(o, p.suggest)
         ? h('p', { class: 'keep loss' }, `${fit(p.suggest)} would be below your cost, so it isn't suggested.`)
-        : h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, `Set price to ${fit(p.suggest)}`))
+        : [overBest(o, p.suggest) ? h('p', { class: 'keep loss' }, `${fit(p.suggest)} is above your highest sale, ${fit(best)}. Nothing of yours has sold that high yet.`) : null,
+           h('div', { class: 'acts' }, h('button', { type: 'button', class: 'line', 'data-do': 'useSuggested', 'data-value': String(p.suggest) }, `Set price to ${fit(p.suggest)}`))]
       : null,
     null);
 }
 
 // A span wider than the visible columns makes the table invent empty ones, which squeeze the offer names.
-// These breakpoints mirror the ones in style.css that hide Price rank, Lowest and Sold.
-const shownColumns = () => 8 - (innerWidth <= 1240 ? 1 : 0) - (innerWidth <= 1100 ? 2 : 0);
+// These breakpoints mirror the ones in style.css that hide Price rank, Lowest, You sold at and Sold.
+const shownColumns = () => 9 - (innerWidth <= 1440 ? 1 : 0) - (innerWidth <= 1240 ? 1 : 0) - (innerWidth <= 1100 ? 2 : 0);
 
 // A refused edit gets its own line under the offer, so it can't be missed the way a side note was.
 function unsavedLine(o) {
@@ -542,6 +585,7 @@ function panel(o) {
     cheaperLine(o),
     profitBox(o),
     priceBand(o),
+    ladder(o),
     h('p', { class: 'note', role: 'status' }, o.note),
     actions(o),
     rivals(o));
@@ -618,20 +662,21 @@ function ordersPage() {
       h('input', { class: 'filter', id: 'orderFilter', 'data-order-filter': '1', value: orderFilter, placeholder: 'Find an item', title: 'Ctrl+F', 'aria-label': 'Find orders by item', autocomplete: 'off', spellcheck: 'false' })),
     h('div', { class: 'work' },
       h('div', { class: 'list' }, list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders' },
-        h('colgroup', {}, ['due', 'item', 'buyer', 'qty', 'total', 'state', 'review'].map(c => h('col', { class: 'c-' + c }))),
-        h('thead', {}, h('tr', {}, ['Time left', 'Order', 'Buyer', 'Qty', 'Total', 'State', 'Review'].map(t => h('th', { scope: 'col' }, t)))),
+        h('colgroup', {}, ['due', 'item', 'buyer', 'qty', 'each', 'total', 'state', 'review'].map(c => h('col', { class: 'c-' + c }))),
+        h('thead', {}, h('tr', {}, [['Time left'], ['Order'], ['Buyer'], ['Qty'], ['Each', 'What the buyer paid for one unit: the total divided by the quantity'], ['Total'], ['State'], ['Review']]
+          .map(([t, tip]) => h('th', { scope: 'col', title: tip || null }, t)))),
         h('tbody', {}, list.map(o => h('tr', {
           'data-key': o.id, 'data-do': 'pickOrder', 'data-order': o.id, tabindex: 0,
           class: pick && o.id === pick.id ? 'on' : null, 'aria-selected': String(!!pick && o.id === pick.id),
         },
-          h('td', {}, dueCell(o)), h('td', {}, h('div', { class: 'it' }, orderPicture(o), h('b', {}, o.title))), h('td', {}, o.buyer, buyerNote(o.buyer) ? h('small', { class: 'buyer-tag', title: buyerNote(o.buyer) }, buyerNote(o.buyer)) : null), h('td', {}, o.quantity), h('td', {}, o.total),
+          h('td', {}, dueCell(o)), h('td', {}, h('div', { class: 'it' }, orderPicture(o), h('b', {}, o.title))), h('td', {}, o.buyer, buyerNote(o.buyer) ? h('small', { class: 'buyer-tag', title: buyerNote(o.buyer) }, buyerNote(o.buyer)) : null), h('td', {}, o.quantity), h('td', { class: 'each' }, o.each), h('td', {}, o.total),
           h('td', {}, o.state), h('td', { class: o.review === 'Negative' ? 'bad' : null }, o.review))))))
         : h('p', { class: 'empty' }, orderFilter.trim() ? `No orders for “${orderFilter.trim()}” here.` : ordersShown === 'open' ? 'Nothing to deliver right now.' : 'Reading your orders.')),
       pick ? orderPanel(pick) : null)];
 }
 
 function orderPanel(o) {
-  const facts = [['Buyer', o.buyer], ['Quantity', o.quantity], ['Total', o.total], ['Placed', o.placed ? dayOf(o.placed) : ''], ['State', o.state], ['Review', o.review], ['Dispute', o.dispute]];
+  const facts = [['Buyer', o.buyer], ['Quantity', o.quantity], ['Each', o.each], ['Total', o.total], ['Placed', o.placed ? dayOf(o.placed) : ''], ['State', o.state], ['Review', o.review], ['Dispute', o.dispute]];
   return h('aside', { 'aria-label': 'Selected order' },
     h('div', { class: 'head' }, orderPicture(o), h('div', {}, h('h2', {}, o.title))),
     h('dl', { class: 'facts' }, facts.filter(([, value]) => value).map(([label, value]) => [h('dt', {}, label), h('dd', {}, value)])),
@@ -928,7 +973,8 @@ function opportunities() {
     h('header', {}, h('h3', {}, 'Price checks'), h('span', {}, 'vs this week’s sales')),
     list.length ? list.map(({ o, p }) => h('div', { class: 'move-row', 'data-key': 'p' + o.id, 'data-id': o.id },
       h('span', { class: p.verdict === 'low' ? 'pill up' : 'pill warn' }, p.verdict === 'low' ? 'Raise' : 'High'),
-      h('div', {}, h('b', {}, o.title), h('p', {}, `You ${fit(o.livePrice)} · sales ${fit(p.from)}–${fit(p.to)}`)),
+      h('div', {}, h('b', {}, o.title), h('p', {}, `You ${fit(o.livePrice)} · sales ${fit(p.from)}–${fit(p.to)}`,
+        overBest(o, p.suggest) ? h('span', { class: 'over', title: `${fit(p.suggest)} is above every price you have sold this at in 30 days` }, ` · your highest sale ${fit(bestOf(o))}`) : null)),
       h('div', { class: 'acts' },
         // One click from Home would reprice a live offer, so Set asks once more before it sends.
         belowCost(o, p.suggest)

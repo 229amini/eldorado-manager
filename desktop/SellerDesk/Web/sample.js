@@ -27,6 +27,7 @@
   const now = Date.now();
   const order = (id, title, buyer, quantity, total, state, minutes, extra) => Object.assign({
     id, title, buyer, quantity, total, state, open: state === 'Paid' || state === 'Disputed', placed: now - 3600000, window: 1200,
+    each: (v => v >= 0.01 ? v.toFixed(2) : String(+v.toFixed(5)))(parseFloat(total) / quantity),
     deadline: state === 'Paid' ? now / 1000 + minutes * 60 : null, took: '', review: '', dispute: '', note: '',
   }, extra);
   const daily = Array.from({ length: 30 }, (_, i) => {
@@ -100,6 +101,12 @@
     hub: !location.search.includes('nohub'),
     version: '1.6.2',
     update: location.search.includes('update') ? { version: '1.6.3', percent: null, starting: false, problem: '', notes: ['Market prices now account for bundle sizes.', 'Offers: drag your mark on the sales line to try a price.'] } : null,
+    yourSales: {
+      1: { top: 0.06, last: 0.06, lastDay: '12 Nov', orders: 7, units: 9, rungs: [{ price: 0.12, orders: 0, units: 0, days: 3 }, { price: 0.09, orders: 0, units: 0, days: 2 }, { price: 0.06, orders: 5, units: 6, days: 4 }, { price: 0.05, orders: 2, units: 3, days: 1 }] },
+      3: { top: 0.11, last: 0.08, lastDay: '11 Nov', orders: 4, units: 4, rungs: [{ price: 0.11, orders: 1, units: 1, days: 1 }, { price: 0.08, orders: 3, units: 3, days: 5 }] },
+      5: { top: null, last: null, lastDay: '', orders: 0, units: 0, rungs: [{ price: 0.42, orders: 0, units: 0, days: 6 }] },
+      7: { top: 0.11, last: 0.11, lastDay: '13 Nov', orders: 3, units: 3, rungs: [{ price: 0.11, orders: 3, units: 3, days: 7 }] },
+    },
     pricing: {
       1: { low: 0.01, sales: 14, soldAt: 0.06, average: 0.064, from: 0.04, to: 0.09, topPrice: 0.05, topSeller: 'QuickLoot', topSales: 6, topLink: '/x/oi/1', units: 22000, size: 100, sizeYours: false, listed: [0.01, 0.03, 0.04, 0.05, 0.05, 0.06, 0.07, 0.08, 0.09, 0.12], verdict: 'fair', suggest: 0.06, advice: 'You’re inside the range most sales happened in, 0.04 to 0.09.' },
       3: { low: 0.05, sales: 9, soldAt: 0.22, average: 0.21, from: 0.15, to: 0.3, topPrice: 0.2, topSeller: 'ArcDepot', topSales: 4, topLink: '/x/oi/3', units: 60, size: 1, sizeYours: false, listed: [0.05, 0.12, 0.18, 0.2, 0.25], verdict: 'low', suggest: 0.22, advice: 'Most sales happened between 0.15 and 0.30, and you’re below all of that. 0.22 sits in the middle of them.' },

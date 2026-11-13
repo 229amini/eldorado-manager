@@ -351,6 +351,27 @@ aside .hint { margin: 0; }
 .band-facts dt { color: var(--muted); }
 .band-facts dd { margin: 0; font-weight: 600; text-align: right; }
 .band-facts .seller { justify-items: end; padding: 0; text-decoration: underline; }
+.band-line .best, .band-key .best { background: var(--ink); }
+
+/* Your own sales: price per unit on orders, your highest sale on offers, the price ladder in the panel */
+.c-mine { width: 112px; } .c-each { width: 76px; }
+.mine { font-weight: 600; }
+.mine small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); line-height: 1; }
+.mine.over { color: var(--down); }
+.over { color: var(--down); }
+small.over { display: block; font-size: 11px; line-height: 1.2; margin-top: 2px; }
+td.each { font-variant-numeric: tabular-nums; }
+.ladder { padding: 12px; background: var(--field); border-radius: var(--r); display: grid; gap: 6px; }
+.ladder h3 { margin: 0; }
+.ladder table { border-spacing: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.ladder th { text-align: left; font-weight: 400; font-size: 12px; color: var(--muted); padding: 0 0 4px; }
+.ladder td { height: auto; padding: 5px 0; border-top: 1px solid var(--line); white-space: normal; overflow: visible; text-overflow: clip; }
+.ladder td small { margin-left: 6px; font-size: 11px; color: var(--muted); }
+.ladder td small.tag { color: var(--up); }
+.ladder th:first-child, .ladder td:first-child { width: 48%; }
+.ladder tr.best td:first-child { font-weight: 700; }
+.ladder tr.unsold td { color: var(--muted); }
+.ladder .hint { margin: 2px 0 0; }
 .insight.low, .insight.high { color: var(--down); }
 .insight.fair { color: var(--up); }
 
@@ -496,12 +517,17 @@ tbody tr:hover td { background: var(--panel); }
 @media (max-width: 1440px) {
   .name .label { display: none; }
   .extend { grid-template-columns: 1fr; }   /* the side panel is too narrow for both choices on one row */
+  /* Lowest makes room for You sold at: the panel still says how many are cheaper and the lowest price */
+  .c-low , .offers th:nth-child(4), .offers td:nth-child(4) { display: none; }
+  .c-mine { width: 100px; } .c-soldat { width: 112px; }
 }
 @media (max-width: 1100px) {
   .top { gap: 12px; }
   .top nav button { padding: 0 10px; }
   .c-low , .offers th:nth-child(4), .offers td:nth-child(4) { display: none; }
-  .c-sold , .offers th:nth-child(8), .offers td:nth-child(8) { display: none; }
+  .c-sold , .offers th:nth-child(9), .offers td:nth-child(9) { display: none; }
+  /* the offer name needs the room; the price cell still says "Above your X" and the panel lists your sales */
+  .c-mine , .offers th:nth-child(6), .offers td:nth-child(6) { display: none; }
   .c-price { width: 132px; } .c-stock { width: 128px; }
   .work { grid-template-columns: minmax(0, 1fr) 300px; }
   .people .person { min-width: 0; }
@@ -514,7 +540,7 @@ tbody tr:hover td { background: var(--panel); }
   .duo.wide { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
   .c-rank , .offers th:nth-child(3), .offers td:nth-child(3) { display: none; }
   .status { display: none; }
-  .orders:not(.finance) .c-review, .orders:not(.finance) th:nth-child(7), .orders:not(.finance) td:nth-child(7) { display: none; }   /* the panel shows the review */
+  .orders:not(.finance) .c-review, .orders:not(.finance) th:nth-child(8), .orders:not(.finance) td:nth-child(8) { display: none; }   /* the panel shows the review */
 }
 @media (max-width: 1000px) {
   .top { gap: 8px; }
@@ -524,7 +550,7 @@ tbody tr:hover td { background: var(--panel); }
   .top .end .tool:not(.round) { padding: 0 9px; }
   .duo.wide { grid-template-columns: minmax(0, 1fr); }
   .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .c-sold , .offers th:nth-child(8), .offers td:nth-child(8) { display: none; }
+  .c-sold , .offers th:nth-child(9), .offers td:nth-child(9) { display: none; }
   .sortby { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.8.0
+
+- Orders: a new **Each** column shows what the buyer paid for one unit, the total divided by the quantity. The side panel shows it too.
+- Offers: a new **You sold at** column shows your own last sale of the offer in 30 days and the highest price that still sold. It turns red when your price is above all of your sales.
+- The side panel lists **Your sales by price**: every price the offer sold at or sat at, with its sales and the days it was listed there. A raise that sold nothing is easy to spot.
+- SellerDesk warns when a price goes above your highest sale: under the price on the row, while you drag your mark, on **Set price to** and in Home's Price checks. It only warns. It never blocks a save.
+- To make room, the **Lowest** column hides below 1440 px wide. The side panel still names the lowest price.
+
 ## 1.7.1
 
 - Orders: a **Find an item** box filters the list by item name. Ctrl+F jumps to it while Orders is open. To find older orders for an item, pick **Last 30 days** first.

@@ -80,6 +80,8 @@ If Eldorado refuses an edit, the row turns red and keeps the value you typed. A 
 
 **Others sold at** shows the typical price other sellers sold the same item for this week, with the number of sales under it. Green means your price sits inside the range most of those sales happened in. Red means you're below or above all of it. The side panel draws that range on a line, with the cheapest listing, the usual range, the typical sale and your price marked and named under it. It offers **Set price to** the typical price when there are enough sales to go on.
 
+**You sold at** shows your own last sale of the offer in the last 30 days, and the highest price that still sold ("up to 0.45"). It turns red when your price is above every price you've sold at. Under a price above that line the row says **Above your 0.45**, and so does the panel when you drag your mark past it or when **Set price to** would go past it. The side panel lists **Your sales by price**: each price the offer sold at or sat at, how many sales it got, and how many days it was listed there. A raise that sold nothing shows up as a price with days and no sales. Days are counted only while SellerDesk is open. In a narrow window the column hides to give the offer name room, and the warning under the price stays.
+
 Drag your mark along that line, or focus it and use the left and right arrow keys, to try a new price. The panel shows where it would place you among the listings and how far it is from the typical sale. The mark sticks to the typical sale, the cheapest listing and the ends of the usual range when you pass close to them. Nothing reaches Eldorado until you press **Save price**. **Cancel** or Escape drops it.
 
 Sellers sell the same item in different bundle sizes: one offer is "100x Seeds", the next "1000 Seeds", another a single seed. Eldorado gives only the price of one unit, so SellerDesk reads the count from each offer's title (`100x`, `x500`, `1000 ...`, `... X200`). A title with no count is one item. Every price is worked out per item, then shown for as many items as one unit of your offer holds, so all of them compare with your price. The count it read for your offer sits above the line. If it's wrong, type the right one there. Insights' market list names the size its prices are for when it isn't one.
@@ -94,7 +96,7 @@ Eldorado closes an offer when its stock runs out. Under **Closed**, type a price
 
 ### Orders
 
-Open orders and the last 30 days, with each item's picture, buyer, amount, deadline, review and dispute. Type in **Find an item** (or press Ctrl+F) to show only the orders for one item. **Mark delivered** and **Extend** act on a real order, so both ask a second time.
+Open orders and the last 30 days, with each item's picture, buyer, quantity, price per unit (**Each**), total, deadline, review and dispute. Type in **Find an item** (or press Ctrl+F) to show only the orders for one item. **Mark delivered** and **Extend** act on a real order, so both ask a second time.
 
 Write a note on a buyer in the order's side panel, like "big orders" or "slow to reply". You'll see it under their name in Orders and Customers, and on the alarm when they order again. Notes need your shared server and every PC shares them.
 
