@@ -139,6 +139,18 @@
     },
   };
   for (const o of state.orders) Object.assign(o, { amount: parseFloat(o.total), currency: 'USD', sale: o.state !== 'Canceled' });
+  // ?crowd: many people, a long problem and a blocked close, to check the layout under load.
+  if (location.search.includes('crowd')) {
+    const book = state.finance.ledger;
+    ['Mostafa', 'Jasem', 'Amir', 'Angel', 'Christopher Longname', 'Nima'].forEach((name, i) => {
+      const id = 'p' + (i + 3);
+      book.people.push({ id, name, note: '', archived: false });
+      book.summary.push({ person: id, units: 100 * (i + 1) + 1784, earned: 93.28 + i, paid: 0, balance: 93.28 + i, orders: 3 });
+    });
+    state.problem = 'Eldorado asked for fewer requests. The shared server answered 502 and the market waits until it can be reached again.';
+    state.closeNote = "4 changes are still on their way to Eldorado. Close once they're sent, or press Esc on a row to drop its change.";
+    state.outbox = { count: 4, until: '16:01:01' };
+  }
   const find = id => state.offers.find(o => o.id === id);
   const fields = { Price: ['priceDraft', 'pendingPrice'], Stock: ['stockDraft', 'pendingStock'] };
   window.sampleLog = [];

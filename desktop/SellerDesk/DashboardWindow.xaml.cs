@@ -47,6 +47,7 @@ namespace SellerDesk
         private bool descending;
         private DateTime? pricesChecked, siteChecked;
         private string problem;
+        private bool closeAsked;   // the window refused to close; says why until nothing waits any more
         private string orderText;
         private DateTime themeRead;
         private Dictionary<string, object> order;
@@ -102,9 +103,7 @@ namespace SellerDesk
             {
                 if (waiting.Count == 0 && outbox.Count == 0) return;
                 e.Cancel = true;   // a change is still on its timer, and closing now would lose it
-                problem = waiting.Count > 0
-                    ? "A change is waiting to send. Press Enter to send it or Esc to cancel it, then close."
-                    : $"{outbox.Count} changes are still on their way to Eldorado. Close once they're sent, or press Esc on a row to drop its change.";
+                closeAsked = true;
                 Later();
             };
             Closed += (_, __) =>
@@ -198,6 +197,15 @@ namespace SellerDesk
             if (!redraw.IsEnabled) redraw.Start();
         }
 
+        private string CloseNote()
+        {
+            if (closeAsked && waiting.Count > 0) return "A change is waiting to send. Press Enter to send it or Esc to cancel it, then close.";
+            if (closeAsked && outbox.Count > 0)
+                return (outbox.Count == 1 ? "1 change is" : $"{outbox.Count} changes are") + " still on their way to Eldorado. Close once they're sent, or press Esc on a row to drop its change.";
+            closeAsked = false;
+            return null;
+        }
+
         private void Push()
         {
             if (!ready) return;
@@ -210,6 +218,7 @@ namespace SellerDesk
                 ["descending"] = descending,
                 ["offline"] = rows.Any(r => r.State == "Offline"),
                 ["problem"] = problem,
+                ["closeNote"] = CloseNote(),
                 ["unsaved"] = rows.Count(r => r.Unsaved != null),
                 ["checked"] = Stamp(pricesChecked),
                 ["siteChecked"] = Stamp(siteChecked ?? pricesChecked),

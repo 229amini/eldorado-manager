@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.8.1
+
+- Errors now show in a row under the tabs instead of in the top bar. A long error no longer pushes Customers, Finance and Insights out of reach.
+- The "changes are still on their way" note when you close the window clears itself once the changes reach Eldorado.
+- Finance with many people: person cards sit in even rows and scroll after two rows. The total, Add person and Export everyone have their own column on the right.
+- Finance, Per person: the empty side panel is gone until you pick an order, so the columns use the full width. Dates and buyer names stay on one line.
+
 ## 1.8.0
 
 - Orders: a new **Each** column shows what the buyer paid for one unit, the total divided by the quantity. The side panel shows it too.

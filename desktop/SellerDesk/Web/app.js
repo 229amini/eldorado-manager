@@ -213,8 +213,8 @@ function quick(o, field, label, value, waiting) {
     h('button', { type: 'button', tabindex: -1, 'data-do': 'step', 'data-field': field, 'data-dir': 1, 'aria-label': label + ' up' }, plus()));
 }
 
+// A problem can be a long sentence, so it goes in the strip under the tabs, never in the top bar it would squeeze.
 function checked() {
-  if (state.problem) return h('span', { class: 'status problem', role: 'alert' }, state.problem);
   if (!state.checked) return h('span', { class: 'status' }, 'First check is running');
   return h('span', { class: 'status', 'data-ago': '1' }, agoText());
 }
@@ -279,6 +279,8 @@ function attention() {
       h('button', { type: 'button', 'data-do': 'notice', 'data-url': notice.link || '' }, h('b', {}, notice.title), notice.text ? ' ' + notice.text : ''),
       h('button', { type: 'button', class: 'x', 'data-do': 'dismiss', 'data-value': notice.id, 'aria-label': 'Dismiss' }, cross())));
   }
+  if (state.problem) items.unshift(h('span', { class: 'flag problem', 'data-key': 'problem' }, state.problem));
+  if (state.closeNote) items.unshift(h('span', { class: 'flag problem', 'data-key': 'close' }, state.closeNote));
   const update = updateFlag();
   if (update) items.unshift(update);
   if (!items.length && state.checked) items.push(h('span', { class: 'flag calm', 'data-key': 'calm' }, "You're all caught up. Nothing needs you right now."));
@@ -1287,15 +1289,20 @@ function financePage() {
   const pickOrder = financePick && financePick.kind === 'order' ? state.orders.find(o => o.id === financePick.id) : null;
   const pickPerson = financePick && financePick.kind === 'person' ? people(true).find(p => p.id === financePick.id) : null;
   const owed = (ledger().summary || []).reduce((a, s) => a + Math.max(0, s.balance), 0);
+  // Per person with nothing picked gives the columns the whole width instead of an empty panel.
+  const side = pickPerson ? personPanel(pickPerson) : financePick && financePick.kind === 'new' ? newPersonPanel() : pickOrder ? assignPanel(pickOrder) : null;
   return [
+    // The cards wrap in even rows however many people there are; the total and the buttons keep their own column.
     h('div', { class: 'people' },
-      people(false).map(personCard),
-      h('button', { type: 'button', class: financePick && financePick.kind === 'new' ? 'person add on' : 'person add', 'data-do': 'newPerson', 'data-key': 'add' }, plus(), 'Add person'),
+      h('div', { class: 'cards' }, people(false).map(personCard)),
       h('div', { class: 'end' },
         h('span', { class: 'owed-all' }, h('small', {}, 'You owe in total'), dollars(owed)),
-        h('button', { type: 'button', class: 'tool', 'data-do': 'exportAll' }, 'Export everyone'))),
-    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['people', 'Per person'], ['all', 'All, 90 days']], pickPerson ? null : financeShown, 'financeShown')),
-    h('div', { class: 'work' },
+        h('div', { class: 'acts' },
+          h('button', { type: 'button', class: financePick && financePick.kind === 'new' ? 'tool on' : 'tool', 'data-do': 'newPerson', 'data-key': 'add', 'aria-pressed': String(!!(financePick && financePick.kind === 'new')) }, plus(), 'Add person'),
+          h('button', { type: 'button', class: 'tool', 'data-do': 'exportAll' }, 'Export everyone')))),
+    h('div', { class: 'bar' }, segment('Show orders', [['open', `To assign ${open}`], ['people', 'Per person'], ['all', 'All, 90 days']], pickPerson ? null : financeShown, 'financeShown'),
+      byPerson && !pickPerson && !pickOrder ? h('span', { class: 'quiet' }, 'Click an order to change whose units it is.') : null),
+    h('div', { class: side ? 'work' : 'work solo' },
       h('div', { class: 'list' }, pickPerson ? personList(pickPerson) : byPerson
         ? (people(false).length ? h('div', { class: 'person-cols' }, people(false).map(p => personColumn(p, pickOrder))) : h('p', { class: 'empty' }, 'Add a person first.'))
         : list.length ? h('div', { class: 'scroll' }, h('table', { class: 'orders finance' },
@@ -1308,8 +1315,7 @@ function financePage() {
             h('td', { class: 'quiet' }, dayOf(o.placed)), h('td', {}, h('div', { class: 'it' }, orderPicture(o), h('b', {}, o.title))), h('td', {}, o.buyer),
             h('td', {}, o.quantity), h('td', {}, o.total), h('td', {}, financeShown === 'open' ? assignCell(o) : sharesCell(o)))))))
           : h('p', { class: 'empty' }, financeShown === 'open' ? 'All assigned.' : 'No orders here.')),
-      pickPerson ? personPanel(pickPerson) : financePick && financePick.kind === 'new' ? newPersonPanel() : pickOrder ? assignPanel(pickOrder)
-        : byPerson ? h('aside', { 'aria-label': 'Fix an assignment' }, h('p', { class: 'insight' }, 'Click an order to change whose units it is.')) : null)];
+      side)];
 }
 
 // ---------- drawing ----------

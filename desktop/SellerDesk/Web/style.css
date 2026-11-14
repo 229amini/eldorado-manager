@@ -92,13 +92,13 @@ aside .line:hover:not(:disabled) { background: var(--line); }
 .count.hot { min-width: 20px; height: 20px; padding: 0 6px; display: inline-grid; place-items: center; background: var(--ping); color: #fff; font-size: 12px; border-radius: 10px; }
 .end { margin-left: auto; display: flex; align-items: center; gap: 8px; min-width: 0; }
 .status { color: var(--muted); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; margin-right: 6px; }
-.status.problem { color: var(--down); font-weight: 600; white-space: normal; }
 
 .attention { flex: none; display: flex; flex-wrap: wrap; gap: 6px; padding: 4px var(--edge) 6px; }
 .flag { min-height: 30px; padding: 0 12px; display: inline-flex; align-items: center; gap: 6px; background: var(--panel); font-size: 14px; font-weight: 600; border-radius: var(--r); box-shadow: inset 0 0 0 1px var(--hair); max-width: 520px; }
 .flag:is(button):hover { background: var(--raised); }
 .flag.hot { background: var(--tint); color: var(--accent); }
 .flag.hot:is(button):hover { background: var(--tint); filter: brightness(1.15); }
+.flag.problem { max-width: none; padding: 5px 12px; line-height: 1.35; background: var(--warm); color: var(--down); }
 .flag.calm { background: none; padding: 0; color: var(--muted); font-weight: 400; }
 .flag.notice { padding-right: 3px; font-weight: 400; }
 .flag.notice button:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -400,13 +400,20 @@ td.each { font-variant-numeric: tabular-nums; }
 .pair small { margin-left: auto; color: var(--muted); }
 
 /* Finance */
-.people { flex: none; display: flex; flex-wrap: wrap; align-items: stretch; gap: 8px; padding: 6px var(--edge) 4px; }
-.person { display: flex; align-items: center; gap: 10px; min-width: 210px; padding: 10px 14px; background: var(--panel); border-radius: var(--r-big); text-align: left; box-shadow: inset 0 0 0 1px var(--line); }
+.people { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 12px; padding: 6px var(--edge) 4px; }
+.people .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 8px; max-height: 166px; overflow-y: auto; padding: 1px; }
+.people .end { flex-direction: column; align-items: end; gap: 6px; }
+.people .end .acts { display: flex; gap: 6px; }
+.people .end .tool { display: inline-flex; align-items: center; gap: 6px; }
+.people .end .tool .icon { width: 14px; height: 14px; }
+.people .end .tool.on { background: var(--tint); color: var(--accent); }
+.person { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 14px; background: var(--panel); border-radius: var(--r-big); text-align: left; box-shadow: inset 0 0 0 1px var(--line); }
 .person:hover { background: var(--raised); }
 .person.on { box-shadow: inset 0 0 0 2px var(--signal); background: var(--tint); }
-.person.add { min-width: 0; color: var(--muted); font-weight: 600; box-shadow: inset 0 0 0 1px var(--line); border: 1px dashed var(--line); }
 .person .who { display: grid; line-height: 1.25; min-width: 0; }
+.person .who b, .person .who small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .person .who small { color: var(--muted); font-size: 12px; }
+.person .owed { flex: none; }
 .owed { margin-left: auto; display: grid; justify-items: end; font-weight: 600; font-size: 17px; color: var(--accent); line-height: 1.15; }
 .owed small { font-size: 11px; font-weight: 400; color: var(--muted); }
 .owed.clear { color: var(--up); }
@@ -455,7 +462,9 @@ aside .sub { margin-top: 4px; }
 .fix-box { display: grid; gap: 8px; max-width: 560px; padding: 12px 14px; border-radius: var(--r); background: var(--panel); box-shadow: inset 0 0 0 1px var(--hair); }
 .fix-box .sub { margin: 0; }
 .fix-box .acts { justify-content: flex-start; }
-.person-cols { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 10px; margin-left: var(--edge); overflow-x: auto; }
+.person-cols { flex: 1; min-height: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 10px; margin-left: var(--edge); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.person-col { scroll-snap-align: start; }
+.work.solo { grid-template-columns: minmax(0, 1fr); padding-right: var(--edge); }
 .person-col { display: flex; flex-direction: column; min-height: 0; padding: 12px 8px 8px; }
 .person-col > .head { padding: 0 6px 10px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
 .person-col .who { display: grid; line-height: 1.25; min-width: 0; }
@@ -466,7 +475,7 @@ aside .sub { margin-top: 4px; }
 .job:hover { background: var(--raised); }
 .job.on, .job.on:hover { background: var(--tint); }
 .job:focus-visible { outline: 2px solid var(--signal); outline-offset: -2px; }
-.job .named b { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.job .named b, .job .named small { font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .job .units { font-weight: 600; white-space: nowrap; }
 .job .fix { font-size: 12px; font-weight: 600; color: var(--accent); visibility: hidden; }
 .job:hover .fix, .job.on .fix, .job:focus-visible .fix { visibility: visible; }
@@ -485,7 +494,6 @@ aside .sub { margin-top: 4px; }
 
 /* Finish: hairlines and a low shadow give depth; no glow, no gradients */
 .card, .stat, aside, .person { box-shadow: inset 0 0 0 1px var(--hair), var(--shadow); }
-.person.add { box-shadow: none; background: none; }
 .tool, .line { box-shadow: inset 0 0 0 1px var(--hair); }
 .solid { box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 1px 2px rgba(0,0,0,.2); }
 .stat b { letter-spacing: -.015em; }
@@ -530,7 +538,7 @@ tbody tr:hover td { background: var(--panel); }
   .c-mine , .offers th:nth-child(6), .offers td:nth-child(6) { display: none; }
   .c-price { width: 132px; } .c-stock { width: 128px; }
   .work { grid-template-columns: minmax(0, 1fr) 300px; }
-  .people .person { min-width: 0; }
+  .people .cards { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
   .c-due { width: 100px; } .c-buyer { width: 116px; } .c-total { width: 92px; } .c-state { width: 92px; }
 }
 
